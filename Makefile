@@ -1,6 +1,6 @@
 #source .env
 .EXPORT_ALL_VARIABLES:
-SERVICE_NAME=black-service
+SERVICE_NAME=trade-service
 DOCKER_USERNAME=aibotsoft
 CGO_ENABLED=0
 GOARCH=amd64
