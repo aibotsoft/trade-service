@@ -57,17 +57,11 @@ func (c *Client) Events(ctx context.Context) (api.GetEventsResponse, error) {
 }
 func (c *Client) CheckLogin(ctx context.Context, session string) (api.LoginResponse, error) {
 	resp, _, err := c.UserApi.CheckLogin(ctx, session).Full(true).Execute()
-	if err != nil {
-		return api.LoginResponse{}, err
-	}
-	return resp, nil
+	return resp, err
 }
 func (c *Client) Login(ctx context.Context, username string, password string) (api.LoginResponse, error) {
 	resp, _, err := c.UserApi.Login(ctx).LoginRequest(api.LoginRequest{Username: username, Password: password, Full: true, Lang: "en"}).Execute()
-	if err != nil {
-		return api.LoginResponse{}, err
-	}
-	return resp, nil
+	return resp, err
 }
 func (c *Client) Balance(ctx context.Context, username string) (api.BalanceResponse, error) {
 	resp, _, err := c.UserApi.Balance(ctx, username).Execute()

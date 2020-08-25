@@ -5,6 +5,8 @@ import (
 	"github.com/aibotsoft/micro/logger"
 	"github.com/aibotsoft/micro/mig"
 	"github.com/aibotsoft/micro/sqlserver"
+	"github.com/aibotsoft/trade/pkg/store"
+	"github.com/aibotsoft/trade/services/auth"
 )
 
 func main() {
@@ -12,12 +14,15 @@ func main() {
 	cfg := config.New()
 	log.Infow("Begin service", "conf", cfg.Service)
 	db := sqlserver.MustConnectX(cfg)
-
-	log.Info(db)
 	err := mig.MigrateUp(cfg, log, db)
 	if err != nil {
 		log.Fatal(err)
 	}
+	sto := store.New(cfg, log, db)
+
+	au := auth.New(cfg, log, sto)
+	log.Info(au)
+
 	//cli := client.New(cfg, log)
 	//ctx := context.Background()
 	////resp, err := cli.CheckLogin(ctx, token)
