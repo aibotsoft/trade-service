@@ -58,3 +58,8 @@ func (s *Store) UpdateToken(ctx context.Context, token Token) (err error) {
 		token.LastCheckAt, token.Session)
 	return
 }
+
+func (s *Store) SaveSport(sport string) {
+	_, _ = s.db.Exec("insert into dbo.Sport ()", sport)
+	return
+}

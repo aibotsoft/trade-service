@@ -3,6 +3,8 @@ package handler
 func (h *Handler) processEvent(m []interface{}) {
 	sportList := m[1].([]interface{})
 	sport := sportList[0].(string)
+	h.store.SaveSport(sport)
+
 	eventId := sportList[1].(string)
 
 	eventList, ok := m[2].(map[string]interface{})
