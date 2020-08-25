@@ -27,6 +27,12 @@ func TestAuth_CheckLogin(t *testing.T) {
 }
 
 func TestAuth_Login(t *testing.T) {
-	_, err := a.Login(context.Background())
+	err := a.Login(context.Background())
 	assert.NoError(t, err)
+}
+
+func TestAuth_LoginRound(t *testing.T) {
+	err := a.AuthRound(context.Background())
+	assert.NoError(t, err)
+
 }

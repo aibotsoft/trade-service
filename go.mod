@@ -8,7 +8,9 @@ require (
 	github.com/dgraph-io/ristretto v0.0.2
 	github.com/golang-migrate/migrate/v4 v4.12.2 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/websocket v1.4.2
 	github.com/jmoiron/sqlx v1.2.0
+	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.6.1
 	github.com/vrischmann/envconfig v1.3.0 // indirect
 	go.uber.org/zap v1.15.0

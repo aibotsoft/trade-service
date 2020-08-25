@@ -7,6 +7,7 @@ import (
 	"github.com/aibotsoft/micro/sqlserver"
 	"github.com/aibotsoft/trade/pkg/store"
 	"github.com/aibotsoft/trade/services/auth"
+	"github.com/aibotsoft/trade/services/handler"
 )
 
 func main() {
@@ -21,14 +22,13 @@ func main() {
 	sto := store.New(cfg, log, db)
 
 	au := auth.New(cfg, log, sto)
-	log.Info(au)
-
+	go au.AuthJob()
+	h := handler.New(cfg, log, sto, au)
+	h.WebsocketJob()
+	//log.Info(h)
 	//cli := client.New(cfg, log)
 	//ctx := context.Background()
-	////resp, err := cli.CheckLogin(ctx, token)
-	////if err != nil {
-	////	return
-	////}
+
 	//auth := context.WithValue(ctx, api.ContextAPIKeys, map[string]api.APIKey{"session": {Key: token}})
 	//resp, err := cli.Events(auth)
 	//log.Info(resp)
