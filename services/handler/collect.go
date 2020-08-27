@@ -1,22 +1,59 @@
 package handler
 
+import (
+	"strconv"
+	"strings"
+)
+
 func (h *Handler) processEvent(m []interface{}) {
 	sportList := m[1].([]interface{})
 	sport := sportList[0].(string)
-	h.store.SaveSport(sport)
-
 	eventId := sportList[1].(string)
+	eventSplit := strings.Split(eventId, ",")
+	if len(eventSplit) != 3 {
+		h.log.Info("split_event_error: ", eventId)
+		return
+	}
+	homeId, _ := strconv.ParseInt(eventSplit[1], 10, 64)
+	awayId, _ := strconv.ParseInt(eventSplit[2], 10, 64)
 
 	eventList, ok := m[2].(map[string]interface{})
 	if !ok {
 		h.log.Infow("eventList_not_ok", "m[2]", m[2])
 		return
 	}
-	home := eventList["home"]
-	away := eventList["away"]
-	competitionId := eventList["competition_id"]
-	competitionName := eventList["competition_name"]
-	country := eventList["country"]
+	competitionName := eventList["competition_name"].(string)
+	if competitionName == "" {
+		h.log.Infow("competition_name_blank", "eventList", eventList)
+		return
+	} else if strings.Index(strings.ToLower(competitionName), "test") != -1 {
+		h.log.Infow("competition_name_test", "eventList", eventList)
+		return
+	}
+
+	home := eventList["home"].(string)
+	if home == "" {
+		h.log.Infow("home_blank", "eventList", eventList)
+		return
+	} else if strings.Index(strings.ToLower(home), "test") != -1 {
+		h.log.Infow("home_test", "eventList", eventList)
+		return
+	}
+	away := eventList["away"].(string)
+	if away == "" {
+		h.log.Infow("away_blank", "eventList", eventList)
+		return
+	} else if strings.Index(strings.ToLower(away), "test") != -1 {
+		h.log.Infow("away_test", "eventList", eventList)
+		return
+	}
+	h.store.SaveSport(sport)
+	h.store.SaveTeam(homeId, home)
+	h.store.SaveTeam(awayId, away)
+	//h.store.SaveLeague(sport)
+
+	competitionId := eventList["competition_id"].(float64)
+	country := eventList["country"].(string)
 	startTs := eventList["start_ts"]
 
 	h.log.Infow("", "sport", sport,

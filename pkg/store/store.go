@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"github.com/aibotsoft/micro/cache"
 	"github.com/aibotsoft/micro/config"
 	"github.com/dgraph-io/ristretto"
@@ -60,6 +61,16 @@ func (s *Store) UpdateToken(ctx context.Context, token Token) (err error) {
 }
 
 func (s *Store) SaveSport(sport string) {
-	_, _ = s.db.Exec("insert into dbo.Sport ()", sport)
+	_, _ = s.db.Exec("insert into dbo.Sport (Name) select @p1 where not exists(select 1 from dbo.Sport where Name = @p1)", sport)
 	return
+}
+
+func (s *Store) SaveLeague(sport string) {
+	_, _ = s.db.Exec("insert into dbo.League (Name) select @p1 where not exists(select 1 from dbo.Sport where Name = @p1)", sport)
+}
+func (s *Store) SaveTeam(id int64, name string) {
+	_, _ = s.db.Exec("dbo.uspSaveTeam",
+		sql.Named("Id", id),
+		sql.Named("Name", name),
+	)
 }
