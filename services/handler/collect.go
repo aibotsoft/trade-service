@@ -5,9 +5,47 @@ import (
 	"strings"
 )
 
+var sportPeriodMap = map[string]string{
+	"fb":         "Football",
+	"fb_ht":      "Football",
+	"fb_corn":    "Football",
+	"fb_corn_ht": "Football",
+	"fb_htft":    "Football",
+	"fb_et":      "Football",
+	"basket":     "Basketball",
+	"basket_ht":  "Basketball",
+	"esports":    "eSports",
+	"tennis":     "Tennis",
+	"cricket":    "Cricket",
+	"baseball":   "Baseball",
+	"ih":         "Ice Hockey",
+	"mma":        "MMA",
+	"boxing":     "Boxing",
+	"ru":         "Rugby Union",
+	"rl":         "Rugby League",
+	"af":         "American Football",
+}
+var sportMap = map[string]int64{
+	"Football":          1,
+	"Basketball":        2,
+	"eSports":           3,
+	"Tennis":            4,
+	"Cricket":           5,
+	"Baseball":          6,
+	"Ice Hockey":        7,
+	"MMA":               8,
+	"Boxing":            9,
+	"Rugby Union":       10,
+	"Rugby League":      11,
+	"American Football": 12,
+}
+
 func (h *Handler) processEvent(m []interface{}) {
 	sportList := m[1].([]interface{})
 	sport := sportList[0].(string)
+	sportName := sportPeriodMap[sport]
+	sportId := sportMap[sportName]
+
 	eventId := sportList[1].(string)
 	eventSplit := strings.Split(eventId, ",")
 	if len(eventSplit) != 3 {
@@ -22,11 +60,11 @@ func (h *Handler) processEvent(m []interface{}) {
 		h.log.Infow("eventList_not_ok", "m[2]", m[2])
 		return
 	}
-	competitionName := eventList["competition_name"].(string)
-	if competitionName == "" {
+	leagueName := eventList["competition_name"].(string)
+	if leagueName == "" {
 		h.log.Infow("competition_name_blank", "eventList", eventList)
 		return
-	} else if strings.Index(strings.ToLower(competitionName), "test") != -1 {
+	} else if strings.Index(strings.ToLower(leagueName), "test") != -1 {
 		h.log.Infow("competition_name_test", "eventList", eventList)
 		return
 	}
@@ -47,21 +85,25 @@ func (h *Handler) processEvent(m []interface{}) {
 		h.log.Infow("away_test", "eventList", eventList)
 		return
 	}
-	h.store.SaveSport(sport)
-	h.store.SaveTeam(homeId, home)
-	h.store.SaveTeam(awayId, away)
-	//h.store.SaveLeague(sport)
 
-	competitionId := eventList["competition_id"].(float64)
+
+	leagueId := int64(eventList["competition_id"].(float64))
+
 	country := eventList["country"].(string)
 	startTs := eventList["start_ts"]
+
+	h.store.SaveSport(sportId, sportName)
+	h.store.SaveTeam(homeId, home)
+	h.store.SaveTeam(awayId, away)
+	h.store.SaveLeague(leagueId, leagueName, country, sportId)
+	//h.store.SaveEvent(leagueId, leagueName, country, sportId)
 
 	h.log.Infow("", "sport", sport,
 		"eventId", eventId,
 		"home", home,
 		"away", away,
-		"competitionId", competitionId,
-		"competitionName", competitionName,
+		"competitionId", leagueId,
+		"leagueName", leagueName,
 		"country", country,
 		"startTs", startTs,
 		"eventList", eventList)

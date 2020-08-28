@@ -41,7 +41,7 @@ type Account struct {
 }
 
 func (s *Store) LoadToken(ctx context.Context) (token Token, err error) {
-	err = s.db.GetContext(ctx, &token, "select top 1 Session, CreatedAt, LastCheckAt from dbo.Auth")
+	err = s.db.GetContext(ctx, &token, "select top 1 Session, CreatedAt, LastCheckAt from dbo.Auth order by CreatedAt desc")
 	return
 }
 func (s *Store) LoadAccount(ctx context.Context) (account Account, err error) {
@@ -60,17 +60,44 @@ func (s *Store) UpdateToken(ctx context.Context, token Token) (err error) {
 	return
 }
 
-func (s *Store) SaveSport(sport string) {
-	_, _ = s.db.Exec("insert into dbo.Sport (Name) select @p1 where not exists(select 1 from dbo.Sport where Name = @p1)", sport)
-	return
+func (s *Store) SaveSport(id int64, name string) {
+	_, b := s.Cache.Get(id)
+	if b {
+		return
+	}
+	_, err := s.db.Exec("insert into dbo.Sport (Id, Name) select @p1, @p2 where not exists(select 1 from dbo.Sport where Name = @p2)",	id, name)
+	if err != nil {
+		s.log.Error(err)
+	} else {
+		s.Cache.SetWithTTL(id, true, 1, time.Hour*12)
+	}
 }
 
-func (s *Store) SaveLeague(sport string) {
-	_, _ = s.db.Exec("insert into dbo.League (Name) select @p1 where not exists(select 1 from dbo.Sport where Name = @p1)", sport)
+func (s *Store) SaveLeague(id int64, name string, country string, sportId int64) {
+	_, b := s.Cache.Get(id)
+	if b {
+		return
+	}
+	_, err := s.db.Exec("dbo.uspSaveLeague", id, name, country, sportId)
+	if err != nil {
+		s.log.Error(err)
+	} else {
+		s.Cache.SetWithTTL(id, true, 1, time.Hour*12)
+	}
 }
+
 func (s *Store) SaveTeam(id int64, name string) {
-	_, _ = s.db.Exec("dbo.uspSaveTeam",
+	_, b := s.Cache.Get(id)
+	if b {
+		return
+	}
+	_, err := s.db.Exec("dbo.uspSaveTeam",
 		sql.Named("Id", id),
 		sql.Named("Name", name),
 	)
+	if err != nil {
+		s.log.Error(err)
+	} else {
+		s.Cache.SetWithTTL(id, true, 1, time.Hour*12)
+	}
 }
