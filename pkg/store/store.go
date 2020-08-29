@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/aibotsoft/micro/cache"
 	"github.com/aibotsoft/micro/config"
 	"github.com/dgraph-io/ristretto"
@@ -65,7 +66,7 @@ func (s *Store) SaveSport(id int64, name string) {
 	if b {
 		return
 	}
-	_, err := s.db.Exec("insert into dbo.Sport (Id, Name) select @p1, @p2 where not exists(select 1 from dbo.Sport where Name = @p2)",	id, name)
+	_, err := s.db.Exec("insert into dbo.Sport (Id, Name) select @p1, @p2 where not exists(select 1 from dbo.Sport where Name = @p2)", id, name)
 	if err != nil {
 		s.log.Error(err)
 	} else {
@@ -100,4 +101,24 @@ func (s *Store) SaveTeam(id int64, name string) {
 	} else {
 		s.Cache.SetWithTTL(id, true, 1, time.Hour*12)
 	}
+}
+
+const saveEventQ = `
+insert into dbo.Event (HomeId, AwayId, LeagueId, Starts) 
+select @p1, @p2, @p3, @p4 
+where not exists(select 1 from dbo.Event where HomeId = @p1 and AwayId = @p2 and Starts = @p4)
+`
+
+func (s *Store) SaveEvent(homeId int64, awayId int64, leagueId int64, starts string) {
+	key:=fmt.Sprintf("%v:%v:%v", homeId, awayId, starts)
+	_, err := s.db.Exec(saveEventQ, homeId, awayId, leagueId, starts)
+	if err != nil {
+		s.log.Error(err)
+	} else {
+		s.Cache.SetWithTTL(key, true, 1, time.Hour*12)
+	}
+}
+
+func (s *Store) GetLiveEvent() {
+
 }

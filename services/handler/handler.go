@@ -18,10 +18,14 @@ type Handler struct {
 	//Conf    *config_client.ConfClient
 	//balance balance.Balance
 	wsConn *websocket.Conn
+	read   chan []byte
+	write   chan []byte
 }
 
 func New(cfg *config.Config, log *zap.SugaredLogger, store *store.Store, auth *auth.Auth) *Handler {
 	h := &Handler{cfg: cfg, log: log, client: client.New(cfg, log), store: store, auth: auth}
+	h.read = make(chan []byte, 100000)
+	h.write = make(chan []byte, 100000)
 	return h
 }
 func (h *Handler) Close() {

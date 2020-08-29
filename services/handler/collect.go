@@ -65,7 +65,7 @@ func (h *Handler) processEvent(m []interface{}) {
 		h.log.Infow("competition_name_blank", "eventList", eventList)
 		return
 	} else if strings.Index(strings.ToLower(leagueName), "test") != -1 {
-		h.log.Infow("competition_name_test", "eventList", eventList)
+		//h.log.Infow("competition_name_test", "eventList", eventList)
 		return
 	}
 
@@ -88,25 +88,37 @@ func (h *Handler) processEvent(m []interface{}) {
 
 
 	leagueId := int64(eventList["competition_id"].(float64))
+	irStatus, ok := eventList["ir_status"].(map[string]interface{})
+	if ok {
+		h.log.Infow("",
+			"sport", sport,
+			"eventId", eventId,
+			"home", home,
+			"away", away,
+			//"competitionId", leagueId,
+			//"leagueName", leagueName,
+			//"country", country,
+			//"starts", starts,
+			//"eventList", eventList,
+			"ir_status", irStatus,
+		)
+	}
+
 
 	country := eventList["country"].(string)
-	startTs := eventList["start_ts"]
+	starts, ok := eventList["start_ts"].(string)
+	if !ok {
+		h.log.Info("starts_not_ok: ", eventList)
+		return
+	}
 
 	h.store.SaveSport(sportId, sportName)
 	h.store.SaveTeam(homeId, home)
 	h.store.SaveTeam(awayId, away)
 	h.store.SaveLeague(leagueId, leagueName, country, sportId)
-	//h.store.SaveEvent(leagueId, leagueName, country, sportId)
+	h.store.SaveEvent(homeId, awayId, leagueId, starts)
 
-	h.log.Infow("", "sport", sport,
-		"eventId", eventId,
-		"home", home,
-		"away", away,
-		"competitionId", leagueId,
-		"leagueName", leagueName,
-		"country", country,
-		"startTs", startTs,
-		"eventList", eventList)
+
 	//sport := ss[0].(string)
 	//if !util.StringInList(sport, sportList) {
 	//	//h.log.Info("fuck_sport: ", sport)
