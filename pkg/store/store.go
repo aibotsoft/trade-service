@@ -190,6 +190,27 @@ func (s *Store) SaveDoubleChance(eventPeriodId int64, awayDraw float64, homeAway
 		s.log.Error(err)
 	}
 }
+func (s *Store) SaveWinDrawWin(eventPeriodId int64, away float64, home float64, draw float64, margin float64, isActive bool) {
+	_, err := s.db.Exec("dbo.uspSaveWinDrawWin",
+		sql.Named("EventPeriodId", eventPeriodId),
+		sql.Named("Away", away),
+		sql.Named("Home", home),
+		sql.Named("Draw", draw),
+		sql.Named("Margin", margin),
+		sql.Named("IsActive", isActive),
+	)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
+
+func (s *Store) DeactivateWinDrawWin(eventPeriodId int64) {
+	_, _ = s.db.Exec("update dbo.WinDrawWin set IsActive = 0 where EventPeriodId = @p1", eventPeriodId)
+}
+
+func (s *Store) DeactivateDoubleChance(eventPeriodId int64) {
+	_, _ = s.db.Exec("update dbo.DoubleChance set IsActive = 0 where EventPeriodId = @p1", eventPeriodId)
+}
 
 func (s *Store) GetEventPeriodId(eventId string, code string) (eventPeriodId int64, err error){
 	got, b := s.Cache.Get(eventId+code)

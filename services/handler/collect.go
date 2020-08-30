@@ -179,7 +179,8 @@ func (h *Handler) dc(eventPeriodId int64, value interface{}) {
 	priceList := valueList[0].([]interface{})
 	sideList, ok := priceList[1].([]interface{})
 	if !ok {
-		h.log.Infow("dc_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
+		//h.log.Infow("dc_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
+		h.store.DeactivateDoubleChance(eventPeriodId)
 		return
 	}
 	var homeAway float64 = 1
@@ -209,6 +210,7 @@ func (h *Handler) wdw(eventPeriodId int64, value interface{}) {
 	sideList, ok := priceList[1].([]interface{})
 	if !ok {
 		h.log.Infow("wdw_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
+		h.store.DeactivateWinDrawWin(eventPeriodId)
 		return
 	}
 	away := sideList[0].([]interface{})[1].(float64)
@@ -224,6 +226,8 @@ func (h *Handler) wdw(eventPeriodId int64, value interface{}) {
 		home = 1
 	}
 	margin := util.TruncateFloat(1/(1/away+1/draw+1/home)*100-100, 3)
+	h.store.SaveWinDrawWin(eventPeriodId, away, home, draw, margin, true)
+
 	if margin > 0 {
 		h.log.Infow("offers_event",  "a", away, "h", home, "d", draw, "m", margin)
 	}

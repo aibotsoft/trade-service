@@ -15,10 +15,14 @@ func (h *Handler) SubscribeLoop() {
 			for i := range events {
 				//h.log.Info(events[i])
 				we := fmt.Sprintf(`["watch_event",[%d,"%s","%s"]]`, events[i].LeagueId, events[i].PeriodCode, events[i].Id)
+				_, b := h.store.Cache.Get(we)
+				if b {
+					continue
+				}
 				h.write <- []byte(we)
-				//break
+				h.store.Cache.SetWithTTL(we, true, 1, time.Hour)
 			}
 		}
-		time.Sleep(time.Hour)
+		time.Sleep(time.Minute)
 	}
 }
