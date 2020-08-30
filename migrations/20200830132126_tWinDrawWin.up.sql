@@ -8,5 +8,5 @@ create table dbo.WinDrawWin
     IsActive      bit                                           not null default 1,
     CreatedAt     datetimeoffset(2) default sysdatetimeoffset() not null,
     UpdatedAt     datetimeoffset(2) default sysdatetimeoffset() not null,
-    constraint PK_DoubleChance primary key (EventPeriodId),
+    constraint PK_WinDrawWin primary key (EventPeriodId),
 )

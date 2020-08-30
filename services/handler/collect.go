@@ -227,8 +227,7 @@ func (h *Handler) wdw(eventPeriodId int64, value interface{}) {
 	}
 	margin := util.TruncateFloat(1/(1/away+1/draw+1/home)*100-100, 3)
 	h.store.SaveWinDrawWin(eventPeriodId, away, home, draw, margin, true)
-
 	if margin > 0 {
-		h.log.Infow("offers_event",  "a", away, "h", home, "d", draw, "m", margin)
+		h.log.Infow("wdw",  "a", away, "h", home, "d", draw, "m", margin)
 	}
 }
