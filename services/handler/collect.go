@@ -121,7 +121,7 @@ func (h *Handler) processEvent(m []interface{}) {
 func (h *Handler) processOffersEvent(m []interface{}) {
 	//h.log.Infow("offers_event", "msg", m)
 	sportList := m[1].([]interface{})
-	leagueId := int64(sportList[0].(float64))
+	//leagueId := int64(sportList[0].(float64))
 	sportCode := sportList[1].(string)
 	eventId := sportList[2].(string)
 	priceList := m[2].(map[string]interface{})
@@ -129,23 +129,31 @@ func (h *Handler) processOffersEvent(m []interface{}) {
 		h.store.SaveEventPeriod(eventId, sportCode, false)
 		return
 	}
+	eventPeriodId, err := h.store.GetEventPeriodId(eventId, sportCode)
+	if err != nil {
+		h.log.Error(err)
+	}
+
 	for key, value := range priceList {
 		switch key {
 		case "wdw":
-			h.wdw(leagueId, sportCode, eventId, value)
+			h.wdw(eventPeriodId, value)
 		case "ah":
-			h.ah(leagueId, sportCode, eventId, value)
+			h.ah(eventPeriodId, value)
+		case "dc":
+			h.dc(eventPeriodId, value)
 		}
 	}
 }
-func (h *Handler) ah(leagueId int64, sportCode string, eventId string, value interface{}) {
+func (h *Handler) ah(eventPeriodId int64, value interface{}) {
 	valueList := value.([]interface{})
 	for i := range valueList {
 		priceList := valueList[i].([]interface{})
-		handicap := priceList[0].(float64)
+		handicap := int64(priceList[0].(float64))
 		sideList, ok := priceList[1].([]interface{})
 		if !ok {
-			h.log.Infow("ah_not_ok", "handicap", handicap, "side", priceList[1], "", sideList)
+			//h.log.Infow("ah_not_ok", "id", eventPeriodId, "handicap", handicap)
+			h.store.DeactivateHandicap(eventPeriodId, handicap)
 			continue
 		}
 		away := sideList[0].([]interface{})[1].(float64)
@@ -157,18 +165,49 @@ func (h *Handler) ah(leagueId int64, sportCode string, eventId string, value int
 			home = 1
 		}
 		margin := util.TruncateFloat(1/(1/away+1/home)*100-100, 3)
-		h.log.Infow("ah", "handicap", handicap, "away", away, "home", home, "margin", margin)
+		h.store.SaveHandicap(eventPeriodId, handicap, away, home, margin, true)
+		if margin > 0 {
+			h.log.Infow("ah", "id", eventPeriodId, "handicap", handicap, "away", away, "home", home, "margin", margin)
+		}
 
 	}
 	//sideList, ok := priceList[1].([]interface{})
 }
-
-func (h *Handler) wdw(leagueId int64, sportCode string, eventId string, value interface{}) {
+func (h *Handler) dc(eventPeriodId int64, value interface{}) {
+	//h.log.Infow("dc", "id", eventPeriodId, "value", value)
 	valueList := value.([]interface{})
 	priceList := valueList[0].([]interface{})
 	sideList, ok := priceList[1].([]interface{})
 	if !ok {
-		h.log.Infow("wdw_not_ok", "s", sportCode, "eventId", eventId,"v", value)
+		h.log.Infow("dc_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
+		return
+	}
+	var homeAway float64 = 1
+	var homeDraw float64 = 1
+
+	awayDraw := sideList[0].([]interface{})[1].(float64)
+	if awayDraw == 0 {
+		awayDraw = 1
+	}
+	if len(sideList) > 1 {
+		homeAway = sideList[1].([]interface{})[1].(float64)
+	}
+	if len(sideList) > 2 {
+		homeDraw = sideList[2].([]interface{})[1].(float64)
+
+	}
+	margin := util.TruncateFloat(1/(1/awayDraw+1/homeAway+1/homeDraw)*100-100, 3)
+	if margin > 0 {
+		h.log.Infow("dc",  "ad", awayDraw, "hd", homeDraw, "ha", homeAway, "m", margin)
+	}
+}
+
+func (h *Handler) wdw(eventPeriodId int64, value interface{}) {
+	valueList := value.([]interface{})
+	priceList := valueList[0].([]interface{})
+	sideList, ok := priceList[1].([]interface{})
+	if !ok {
+		h.log.Infow("wdw_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
 		return
 	}
 	away := sideList[0].([]interface{})[1].(float64)
@@ -185,6 +224,6 @@ func (h *Handler) wdw(leagueId int64, sportCode string, eventId string, value in
 	}
 	margin := util.TruncateFloat(1/(1/away+1/draw+1/home)*100-100, 3)
 	if margin > 0 {
-		h.log.Infow("offers_event", "s", sportCode, "eventId", eventId, "a", away, "h", home, "d", draw, "m", margin)
+		h.log.Infow("offers_event",  "a", away, "h", home, "d", draw, "m", margin)
 	}
 }

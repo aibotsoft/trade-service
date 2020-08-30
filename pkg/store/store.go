@@ -161,6 +161,9 @@ func (s *Store) GetLiveEvents() (events []Event, err error) {
 	return
 }
 
+func (s *Store) DeactivateHandicap(eventPeriodId int64, handicapCode int64) {
+	_, _ = s.db.Exec("update dbo.Handicap set IsActive = 0 where EventPeriodId = @p1 and HandicapCode = @p2", eventPeriodId, handicapCode)
+}
 func (s *Store) SaveHandicap(eventPeriodId int64, handicapCode int64, away float64, home float64, margin float64, isActive bool) {
 	_, err := s.db.Exec("dbo.uspSaveHandicap",
 		sql.Named("EventPeriodId", eventPeriodId),
@@ -173,4 +176,17 @@ func (s *Store) SaveHandicap(eventPeriodId int64, handicapCode int64, away float
 	if err != nil {
 		s.log.Error(err)
 	}
+}
+
+func (s *Store) GetEventPeriodId(eventId string, code string) (eventPeriodId int64, err error){
+	got, b := s.Cache.Get(eventId+code)
+	if b {
+		return got.(int64), nil
+	}
+	err = s.db.Get(&eventPeriodId, "select Id from dbo.EventPeriod where EventId = @p1 and PeriodCode = @p2", eventId, code)
+	if err != nil {
+		return
+	}
+	s.Cache.SetWithTTL(eventId+code, eventPeriodId, 1, time.Hour)
+	return
 }
