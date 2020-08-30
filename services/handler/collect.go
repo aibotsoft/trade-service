@@ -157,8 +157,8 @@ func (h *Handler) ahou(eventPeriodId int64, value interface{}) {
 		handicap := int64(priceList[0].(float64))
 		sideList, ok := priceList[1].([]interface{})
 		if !ok {
-			h.log.Infow("ahou_not_ok", "id", eventPeriodId, "handicap", handicap)
-			//h.store.DeactivateHandicap(eventPeriodId, handicap)
+			//h.log.Infow("ahou_not_ok", "id", eventPeriodId, "handicap", handicap)
+			h.store.DeactivateTotal(eventPeriodId, handicap)
 			continue
 		}
 		var under float64 = 1
@@ -170,7 +170,7 @@ func (h *Handler) ahou(eventPeriodId int64, value interface{}) {
 			under = sideList[1].([]interface{})[1].(float64)
 		}
 		margin := util.TruncateFloat(1/(1/over+1/under)*100-100, 3)
-		//h.store.SaveTotal(eventPeriodId, handicap, over, under, margin, true)
+		h.store.SaveTotal(eventPeriodId, handicap, over, under, margin, true)
 		if margin > 0 {
 			h.log.Infow("ahou", "id", eventPeriodId, "handicap", handicap, "over", over, "under", under, "margin", margin)
 		}

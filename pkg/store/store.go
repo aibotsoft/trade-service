@@ -177,6 +177,22 @@ func (s *Store) SaveHandicap(eventPeriodId int64, handicapCode int64, away float
 		s.log.Error(err)
 	}
 }
+func (s *Store) SaveTotal(eventPeriodId int64, handicapCode int64, ove float64, under float64, margin float64, isActive bool) {
+	_, err := s.db.Exec("dbo.uspSaveTotal",
+		sql.Named("EventPeriodId", eventPeriodId),
+		sql.Named("HandicapCode", handicapCode),
+		sql.Named("Ove", ove),
+		sql.Named("Under", under),
+		sql.Named("Margin", margin),
+		sql.Named("IsActive", isActive),
+	)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
+func (s *Store) DeactivateTotal(eventPeriodId int64, handicapCode int64) {
+	_, _ = s.db.Exec("update dbo.Total set IsActive = 0 where EventPeriodId = @p1 and HandicapCode = @p2", eventPeriodId, handicapCode)
+}
 func (s *Store) SaveDoubleChance(eventPeriodId int64, awayDraw float64, homeAway float64, homeDraw float64, margin float64, isActive bool) {
 	_, err := s.db.Exec("dbo.uspSaveDoubleChance",
 		sql.Named("EventPeriodId", eventPeriodId),

@@ -8,7 +8,7 @@ alter proc dbo.uspSaveTotal @EventPeriodId int,
 as
 begin
     set nocount on
-    MERGE dbo.Handicap AS t
+    MERGE dbo.Total AS t
     USING (select @EventPeriodId, @HandicapCode) s (EventPeriodId, HandicapCode)
     ON (t.EventPeriodId = s.EventPeriodId and t.HandicapCode = s.HandicapCode)
 
