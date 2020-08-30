@@ -177,6 +177,19 @@ func (s *Store) SaveHandicap(eventPeriodId int64, handicapCode int64, away float
 		s.log.Error(err)
 	}
 }
+func (s *Store) SaveDoubleChance(eventPeriodId int64, awayDraw float64, homeAway float64, homeDraw float64, margin float64, isActive bool) {
+	_, err := s.db.Exec("dbo.uspSaveDoubleChance",
+		sql.Named("EventPeriodId", eventPeriodId),
+		sql.Named("AwayDraw", awayDraw),
+		sql.Named("HomeAway", homeAway),
+		sql.Named("HomeDraw", homeDraw),
+		sql.Named("Margin", margin),
+		sql.Named("IsActive", isActive),
+	)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
 
 func (s *Store) GetEventPeriodId(eventId string, code string) (eventPeriodId int64, err error){
 	got, b := s.Cache.Get(eventId+code)

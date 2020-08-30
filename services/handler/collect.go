@@ -197,6 +197,7 @@ func (h *Handler) dc(eventPeriodId int64, value interface{}) {
 
 	}
 	margin := util.TruncateFloat(1/(1/awayDraw+1/homeAway+1/homeDraw)*100-100, 3)
+	h.store.SaveDoubleChance(eventPeriodId, awayDraw, homeAway, homeDraw, margin, true)
 	if margin > 0 {
 		h.log.Infow("dc",  "ad", awayDraw, "hd", homeDraw, "ha", homeAway, "m", margin)
 	}
