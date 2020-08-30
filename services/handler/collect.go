@@ -142,6 +142,37 @@ func (h *Handler) processOffersEvent(m []interface{}) {
 			h.ah(eventPeriodId, value)
 		case "dc":
 			h.dc(eventPeriodId, value)
+		case "ahou":
+			h.ahou(eventPeriodId, value)
+		default:
+			//h.log.Info("key: ", key)
+		}
+	}
+}
+func (h *Handler) ahou(eventPeriodId int64, value interface{}) {
+	//h.log.Infow("ahou", "id", eventPeriodId, "value", value)
+	valueList := value.([]interface{})
+	for i := range valueList {
+		priceList := valueList[i].([]interface{})
+		handicap := int64(priceList[0].(float64))
+		sideList, ok := priceList[1].([]interface{})
+		if !ok {
+			h.log.Infow("ahou_not_ok", "id", eventPeriodId, "handicap", handicap)
+			//h.store.DeactivateHandicap(eventPeriodId, handicap)
+			continue
+		}
+		var under float64 = 1
+		over := sideList[0].([]interface{})[1].(float64)
+		if over == 0 {
+			over = 1
+		}
+		if len(sideList) > 1 {
+			under = sideList[1].([]interface{})[1].(float64)
+		}
+		margin := util.TruncateFloat(1/(1/over+1/under)*100-100, 3)
+		//h.store.SaveTotal(eventPeriodId, handicap, over, under, margin, true)
+		if margin > 0 {
+			h.log.Infow("ahou", "id", eventPeriodId, "handicap", handicap, "over", over, "under", under, "margin", margin)
 		}
 	}
 }
@@ -169,12 +200,9 @@ func (h *Handler) ah(eventPeriodId int64, value interface{}) {
 		if margin > 0 {
 			h.log.Infow("ah", "id", eventPeriodId, "handicap", handicap, "away", away, "home", home, "margin", margin)
 		}
-
 	}
-	//sideList, ok := priceList[1].([]interface{})
 }
 func (h *Handler) dc(eventPeriodId int64, value interface{}) {
-	//h.log.Infow("dc", "id", eventPeriodId, "value", value)
 	valueList := value.([]interface{})
 	priceList := valueList[0].([]interface{})
 	sideList, ok := priceList[1].([]interface{})
@@ -209,7 +237,7 @@ func (h *Handler) wdw(eventPeriodId int64, value interface{}) {
 	priceList := valueList[0].([]interface{})
 	sideList, ok := priceList[1].([]interface{})
 	if !ok {
-		h.log.Infow("wdw_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
+		//h.log.Infow("wdw_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
 		h.store.DeactivateWinDrawWin(eventPeriodId)
 		return
 	}

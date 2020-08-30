@@ -1,5 +1,5 @@
 create or
-alter proc dbo.uspSaveDoubleChance @EventPeriodId int,
+alter proc dbo.uspSaveWinDrawWin @EventPeriodId int,
                                    @Away decimal(9, 5),
                                    @Home decimal(9, 5),
                                    @Draw decimal(9, 5),
