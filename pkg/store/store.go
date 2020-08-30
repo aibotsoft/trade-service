@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"github.com/aibotsoft/micro/cache"
 	"github.com/aibotsoft/micro/config"
 	"github.com/dgraph-io/ristretto"
@@ -104,21 +103,60 @@ func (s *Store) SaveTeam(id int64, name string) {
 }
 
 const saveEventQ = `
-insert into dbo.Event (HomeId, AwayId, LeagueId, Starts) 
-select @p1, @p2, @p3, @p4 
-where not exists(select 1 from dbo.Event where HomeId = @p1 and AwayId = @p2 and Starts = @p4)
+insert into dbo.Event (Id, HomeId, AwayId, LeagueId, Starts) 
+select @p1, @p2, @p3, @p4 , @p5
+where not exists(select 1 from dbo.Event where Id = @p1)
 `
 
-func (s *Store) SaveEvent(homeId int64, awayId int64, leagueId int64, starts string) {
-	key:=fmt.Sprintf("%v:%v:%v", homeId, awayId, starts)
-	_, err := s.db.Exec(saveEventQ, homeId, awayId, leagueId, starts)
+func (s *Store) SaveEvent(id string, homeId int64, awayId int64, leagueId int64, starts string) {
+	_, b := s.Cache.Get(id)
+	if b {
+		return
+	}
+	_, err := s.db.Exec(saveEventQ, id, homeId, awayId, leagueId, starts)
 	if err != nil {
 		s.log.Error(err)
 	} else {
-		s.Cache.SetWithTTL(key, true, 1, time.Hour*12)
+		s.Cache.SetWithTTL(id, true, 1, time.Hour*12)
 	}
 }
 
-func (s *Store) GetLiveEvent() {
+const saveEventPeriodQ = `
+insert into dbo.EventPeriod (EventId, PeriodCode) 
+select @p1, @p2
+where not exists(select 1 from dbo.EventPeriod where EventId = @p1 and PeriodCode = @p2)
+`
 
+func (s *Store) SaveEventPeriod(eventId string, periodCode string, isActive bool) {
+	_, err := s.db.Exec("dbo.uspSaveEventPeriod",
+		sql.Named("EventId", eventId),
+		sql.Named("PeriodCode", periodCode),
+		sql.Named("IsActive", isActive),
+	)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
+
+const getEventQ = `
+select e.Id,
+       e.LeagueId,
+       PeriodCode
+from dbo.Event e
+         join dbo.League l on e.LeagueId = l.Id
+         join dbo.EventPeriod ep on ep.EventId = e.Id
+where l.SportId = 1 
+  and ep.IsActive = 1
+  and e.Starts < sysdatetimeoffset()
+`
+
+type Event struct {
+	Id         string
+	LeagueId   int64
+	PeriodCode string
+}
+
+func (s *Store) GetLiveEvents() (events []Event, err error) {
+	err = s.db.Select(&events, getEventQ)
+	return
 }

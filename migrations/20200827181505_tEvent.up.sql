@@ -1,6 +1,6 @@
 create table dbo.Event
 (
-    Id        int identity                                  not null,
+    Id        varchar(100)                                  not null,
     HomeId    int                                           not null,
     AwayId    int                                           not null,
     LeagueId  int                                           not null,

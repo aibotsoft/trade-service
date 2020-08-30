@@ -62,6 +62,10 @@ func (h *Handler) Read() {
 				//h.log.Infow("", "msg", m)
 				if m[0] == "event" {
 					h.processEvent(m)
+				} else if m[0] == "offers_event" {
+					h.processOffersEvent(m)
+				} else if m[0] == "offers_hcap" {
+					h.log.Infow("offers_hcap", "msg", m)
 				}
 			}
 		}
@@ -71,6 +75,7 @@ func (h *Handler) Write() {
 	for {
 		select {
 		case msg := <-h.write:
+			//h.log.Infow("got_write", "msg", msg)
 			err := h.wsConn.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
 				h.log.Error(err)

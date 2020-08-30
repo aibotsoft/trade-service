@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/aibotsoft/micro/util"
 	"strconv"
 	"strings"
 )
@@ -42,8 +43,8 @@ var sportMap = map[string]int64{
 
 func (h *Handler) processEvent(m []interface{}) {
 	sportList := m[1].([]interface{})
-	sport := sportList[0].(string)
-	sportName := sportPeriodMap[sport]
+	sportCode := sportList[0].(string)
+	sportName := sportPeriodMap[sportCode]
 	sportId := sportMap[sportName]
 
 	eventId := sportList[1].(string)
@@ -57,7 +58,8 @@ func (h *Handler) processEvent(m []interface{}) {
 
 	eventList, ok := m[2].(map[string]interface{})
 	if !ok {
-		h.log.Infow("eventList_not_ok", "m[2]", m[2])
+		//h.log.Infow("eventList_not_ok", "m[1]", m[1], "m[2]", m[2])
+		h.store.SaveEventPeriod(eventId, sportCode, false)
 		return
 	}
 	leagueName := eventList["competition_name"].(string)
@@ -86,24 +88,22 @@ func (h *Handler) processEvent(m []interface{}) {
 		return
 	}
 
-
 	leagueId := int64(eventList["competition_id"].(float64))
-	irStatus, ok := eventList["ir_status"].(map[string]interface{})
+	//irStatus, ok := eventList["ir_status"].(map[string]interface{})
 	if ok {
-		h.log.Infow("",
-			"sport", sport,
-			"eventId", eventId,
-			"home", home,
-			"away", away,
-			//"competitionId", leagueId,
-			//"leagueName", leagueName,
-			//"country", country,
-			//"starts", starts,
-			//"eventList", eventList,
-			"ir_status", irStatus,
-		)
+		//h.log.Infow("",
+		//	"s", sportCode,
+		//	"eventId", eventId,
+		//	"home", home,
+		//	"away", away,
+		//	//"competitionId", leagueId,
+		//	//"leagueName", leagueName,
+		//	//"country", country,
+		//	//"starts", starts,
+		//	//"eventList", eventList,
+		//	"ir_status", irStatus,
+		//)
 	}
-
 
 	country := eventList["country"].(string)
 	starts, ok := eventList["start_ts"].(string)
@@ -111,74 +111,80 @@ func (h *Handler) processEvent(m []interface{}) {
 		h.log.Info("starts_not_ok: ", eventList)
 		return
 	}
-
 	h.store.SaveSport(sportId, sportName)
 	h.store.SaveTeam(homeId, home)
 	h.store.SaveTeam(awayId, away)
 	h.store.SaveLeague(leagueId, leagueName, country, sportId)
-	h.store.SaveEvent(homeId, awayId, leagueId, starts)
+	h.store.SaveEvent(eventId, homeId, awayId, leagueId, starts)
+	h.store.SaveEventPeriod(eventId, sportCode, true)
+}
+func (h *Handler) processOffersEvent(m []interface{}) {
+	//h.log.Infow("offers_event", "msg", m)
+	sportList := m[1].([]interface{})
+	leagueId := int64(sportList[0].(float64))
+	sportCode := sportList[1].(string)
+	eventId := sportList[2].(string)
+	priceList := m[2].(map[string]interface{})
+	if len(priceList) == 0 {
+		h.store.SaveEventPeriod(eventId, sportCode, false)
+		return
+	}
+	for key, value := range priceList {
+		switch key {
+		case "wdw":
+			h.wdw(leagueId, sportCode, eventId, value)
+		case "ah":
+			h.ah(leagueId, sportCode, eventId, value)
+		}
+	}
+}
+func (h *Handler) ah(leagueId int64, sportCode string, eventId string, value interface{}) {
+	valueList := value.([]interface{})
+	for i := range valueList {
+		priceList := valueList[i].([]interface{})
+		handicap := priceList[0].(float64)
+		sideList, ok := priceList[1].([]interface{})
+		if !ok {
+			h.log.Infow("ah_not_ok", "handicap", handicap, "side", priceList[1], "", sideList)
+			continue
+		}
+		away := sideList[0].([]interface{})[1].(float64)
+		if away == 0 {
+			away = 1
+		}
+		home := sideList[1].([]interface{})[1].(float64)
+		if home == 0 {
+			home = 1
+		}
+		margin := util.TruncateFloat(1/(1/away+1/home)*100-100, 3)
+		h.log.Infow("ah", "handicap", handicap, "away", away, "home", home, "margin", margin)
 
+	}
+	//sideList, ok := priceList[1].([]interface{})
+}
 
-	//sport := ss[0].(string)
-	//if !util.StringInList(sport, sportList) {
-	//	//h.log.Info("fuck_sport: ", sport)
-	//	return
-	//}
-	//var l store.League
-	//var home, away store.Team
-	//eventIdStr := ss[1].(string)
-	//eventSplit := strings.Split(eventIdStr, ",")
-	//if len(eventSplit) != 3 {
-	//	h.log.Info("split_event_error: ", eventIdStr)
-	//	return
-	//}
-	//home.Id, _ = strconv.ParseInt(eventSplit[1], 10, 64)
-	//away.Id, _ = strconv.ParseInt(eventSplit[2], 10, 64)
-	//
-	//em, ok := d[2].(map[string]interface{})
-	//if !ok {
-	//	return
-	//}
-	//starts, ok := em["start_ts"].(string)
-	//if !ok {
-	//	//h.log.Infow("", "start_ts_not_ok", em)
-	//	return
-	//}
-	//st, err := time.Parse(time.RFC3339, starts)
-	//if err != nil {
-	//	h.log.Info("time_error", st)
-	//	return
-	//}
-	//home.Name = em["home"].(string)
-	//if home.Name == "" {
-	//	return
-	//}
-	//away.Name = em["away"].(string)
-	//if away.Name == "" {
-	//	return
-	//}
-	//l.Name = em["competition_name"].(string)
-	//if l.Name == "" {
-	//	return
-	//}
-	//l.Id = int64(em["competitionId"].(float64))
-	//if l.Id == 0 {
-	//	return
-	//}
-	//l.Country = em["country"].(string)
-	//l.Sport = sport
-	//
-	//var e = store.Event{
-	//	Id:       eventIdStr,
-	//	LeagueId: l.Id,
-	//	HomeId:   home.Id,
-	//	AwayId:   away.Id,
-	//	Starts:   st,
-	//}
-	////h.log.Infow("", "asdf", sport, "", eventIdStr, "", em, "home", home, "away", away, "starts", starts, "e", e, "l", l)
-	////h.log.Infow("", "e", e)
-	//h.store.SaveLeague(l)
-	//h.store.SaveTeam(home)
-	//h.store.SaveTeam(away)
-	//h.store.SaveEvent(e)
+func (h *Handler) wdw(leagueId int64, sportCode string, eventId string, value interface{}) {
+	valueList := value.([]interface{})
+	priceList := valueList[0].([]interface{})
+	sideList, ok := priceList[1].([]interface{})
+	if !ok {
+		h.log.Infow("wdw_not_ok", "s", sportCode, "eventId", eventId,"v", value)
+		return
+	}
+	away := sideList[0].([]interface{})[1].(float64)
+	if away == 0 {
+		away = 1
+	}
+	draw := sideList[1].([]interface{})[1].(float64)
+	if draw == 0 {
+		draw = 1
+	}
+	home := sideList[2].([]interface{})[1].(float64)
+	if home == 0 {
+		home = 1
+	}
+	margin := util.TruncateFloat(1/(1/away+1/draw+1/home)*100-100, 3)
+	if margin > 0 {
+		h.log.Infow("offers_event", "s", sportCode, "eventId", eventId, "a", away, "h", home, "d", draw, "m", margin)
+	}
 }

@@ -49,4 +49,4 @@ mig_up:
 	migrate -verbose -source file://migrations -database $$DSL goto 2
 
 mig_create:
-	migrate create -ext sql -dir migrations tEventPeriod
+	migrate create -ext sql -dir migrations tHandicap
