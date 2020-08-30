@@ -160,3 +160,17 @@ func (s *Store) GetLiveEvents() (events []Event, err error) {
 	err = s.db.Select(&events, getEventQ)
 	return
 }
+
+func (s *Store) SaveHandicap(eventPeriodId int64, handicapCode int64, away float64, home float64, margin float64, isActive bool) {
+	_, err := s.db.Exec("dbo.uspSaveHandicap",
+		sql.Named("EventPeriodId", eventPeriodId),
+		sql.Named("HandicapCode", handicapCode),
+		sql.Named("Away", away),
+		sql.Named("Home", home),
+		sql.Named("Margin", margin),
+		sql.Named("IsActive", isActive),
+	)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
