@@ -2,7 +2,7 @@ create table dbo.Total
 (
     EventPeriodId int                                           not null,
     HandicapCode  smallint                                      not null,
-    Over          decimal(9, 5)                                 not null,
+    Ove          decimal(9, 5)                                 not null,
     Under         decimal(9, 5)                                 not null,
     Margin        decimal(9, 5)                                 not null,
     IsActive      bit                                           not null default 1,
