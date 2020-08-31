@@ -1,26 +1,30 @@
--- create or
--- alter proc dbo.uspSavePrice @EventPeriodId int,
---                             @HandicapCode smallint,
---                             @Ove decimal(9, 5),
---                             @Under decimal(9, 5),
---                             @Margin decimal(9, 5),
---                             @IsActive bit
--- as
--- begin
---     set nocount on
---     MERGE dbo.Price AS t
---     USING (select @EventPeriodId, @HandicapCode) s (EventPeriodId, HandicapCode)
---     ON (t.EventPeriodId = s.EventPeriodId and t.HandicapCode = s.HandicapCode)
---
---     WHEN MATCHED THEN
---         UPDATE
---         SET Ove      = @Ove,
---             Under      = @Under,
---             Margin    = @Margin,
---             IsActive  = @IsActive,
---             UpdatedAt = sysdatetimeoffset()
---
---     WHEN NOT MATCHED THEN
---         INSERT (EventPeriodId, HandicapCode, Ove, Under, Margin, IsActive)
---         VALUES (s.EventPeriodId, s.HandicapCode, @Ove, @Under, @Margin, @IsActive);
--- end
+create or
+alter proc dbo.uspSavePrice @BetslipId varchar(32),
+                            @Bookie varchar(32),
+                            @BetType varchar(32),
+                            @Num tinyint,
+                            @Price decimal(9, 5),
+                            @Min decimal(9, 5),
+                            @Max decimal(9, 5),
+                            @Status varchar(32),
+                            @IsActive bit
+as
+begin
+    set nocount on
+    MERGE dbo.Price AS t
+    USING (select @BetslipId, @Bookie, @BetType, @Num) s (BetslipId, Bookie, BetType, Num)
+    ON (t.BetslipId = s.BetslipId and t.Bookie = s.Bookie and t.BetType = s.BetType and t.Num = s.Num)
+
+    WHEN MATCHED THEN
+        UPDATE
+        SET Status    = @Status,
+            Price     = @Price,
+            Min       = @Min,
+            Max       = @Max,
+            IsActive  = @IsActive,
+            UpdatedAt = sysdatetimeoffset()
+
+    WHEN NOT MATCHED THEN
+        INSERT (BetslipId, Bookie, BetType, Num, Price, Min, Max, Status, IsActive)
+        VALUES (s.BetslipId, s.Bookie, s.BetType, s.Num,  @Price, @Min, @Max, @Status, @IsActive);
+end
