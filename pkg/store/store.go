@@ -287,5 +287,19 @@ type Price struct {
 }
 
 func (s *Store) SavePrice(price Price) {
-	//s.db.Exec()
+	_, err := s.db.Exec("dbo.uspSavePrice",
+		sql.Named("BetslipId", price.BetslipId),
+		sql.Named("Bookie", price.Bookie),
+		sql.Named("BetType", price.BetType),
+		sql.Named("Num", price.Num),
+		sql.Named("Price", price.Price),
+		sql.Named("Min", price.Min),
+		sql.Named("Max", price.Max),
+		sql.Named("Status", price.Status),
+		sql.Named("IsActive", 1),
+	)
+	if err != nil {
+		s.log.Error(err)
+	}
+
 }
