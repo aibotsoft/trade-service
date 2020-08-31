@@ -336,11 +336,11 @@ func (s *Store) SaveBetSlip(b api.BetSlipData) {
 	}
 }
 
-func (s *Store) HasBetSlip(sportCode string, eventId string, betType string) (hasBetSlip bool) {
-	err := s.db.Get(&hasBetSlip, "select 1 from dbo.BetSlip where SportCode = @p1 and EventId = @p2 and BetType = @p3",
+func (s *Store) HasBetSlip(sportCode string, eventId string, betType string) (betSlipId string) {
+	err := s.db.Get(&betSlipId, "select BetslipId from dbo.BetSlip where SportCode = @p1 and EventId = @p2 and BetType = @p3",
 		sportCode, eventId, betType)
 	if err == sql.ErrNoRows {
-		return false
+		return
 	} else if err != nil {
 		s.log.Error(err)
 	}
@@ -352,4 +352,52 @@ func (s *Store) DeleteBetSlips() {
 	if err != nil {
 		s.log.Error(err)
 	}
+}
+
+func (s *Store) SaveSurebet() {
+
+
+}
+
+const getPriceQ = `
+with t as (
+    select max(Price)                  Price,
+           sum(Price * Max) / sum(Max) WeightedPrice,
+           sum(Max)                    Volume,
+           count(Price)                PriceCount,
+           BetslipId
+    from Price
+    where Price > 0
+      and IsActive = 1
+      and BetslipId = @p1
+    group by BetslipId
+)
+select top 1 p.BetslipId,
+             p.Price BestPrice,
+             WeightedPrice,
+             Min,
+             Max,
+             Volume,
+             Bookie,
+             PriceCount
+from Price p
+         join t on p.BetslipId = t.BetslipId and p.Price = t.Price
+order by Max desc
+`
+
+type Side struct {
+	SurebetId int64
+	BetslipId string
+	Price float64
+	BestPrice float64
+	WeightedPrice float64
+	Min float64
+	Max float64
+	Volume float64
+	Bookie float64
+	PriceCount float64
+}
+func (s *Store) GetPrice(betSlipId string) (side Side, err error){
+	err = s.db.Get(&side, getPriceQ, betSlipId)
+	return
 }

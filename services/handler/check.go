@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"github.com/aibotsoft/micro/util"
 	"time"
 )
 
@@ -13,22 +14,31 @@ func (h *Handler) CheckLoop() {
 		select {
 		case <-ticker.C:
 			//h.log.Info(t)
+			surebetId := util.UnixMsNow()
 			sb, err := h.store.GetDemoSurebet(0.2)
 			if err != nil {
 				continue
 			}
 			betTypes := []string{sb.HomeBetType, sb.AwayBetType}
 			for i := range betTypes {
-				exists := h.store.HasBetSlip(sb.PeriodCode, sb.EventId, betTypes[i])
-				if !exists {
-					h.log.Infow("", "", sb, "exists", exists)
+				betSlipId := h.store.HasBetSlip(sb.PeriodCode, sb.EventId, betTypes[i])
+				if betSlipId == "" {
+					h.log.Infow("", "", sb, "betSlipId", betSlipId, "sId", surebetId)
 					slip, err := h.GetBetSlip(sb.PeriodCode, sb.EventId, betTypes[i])
 					if err != nil {
 						h.log.Error(err)
 					} else {
 						h.store.SaveBetSlip(slip)
 					}
+				} else {
+					price, err := h.store.GetPrice(betSlipId)
+					if err != nil {
+						h.log.Error(err)
+					} else {
+						h.log.Infow("price", "", price)
+					}
 				}
+				//h.store.SaveSurebet()
 			}
 		}
 	}
