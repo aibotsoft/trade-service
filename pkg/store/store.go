@@ -244,15 +244,16 @@ order by Margin desc
 `
 
 type Surebet struct {
-	EventId         string
+	EventId string
 	//LeagueId   int64
-	EventPeriodId   int64
-	HandicapCode int64
-	Away float64
-	Home float64
-	Margin float64
-	PeriodCode string
+	EventPeriodId int64
+	HandicapCode  int64
+	Away          float64
+	Home          float64
+	Margin        float64
+	PeriodCode    string
 }
+
 func (s *Store) GetDemoSurebet() (surebet Surebet, err error) {
 	err = s.db.Get(&surebet, GetDemoSurebetQ)
 	return
@@ -269,4 +270,22 @@ func (s *Store) GetEventPeriodId(eventId string, code string) (eventPeriodId int
 	}
 	s.Cache.SetWithTTL(eventId+code, eventPeriodId, 1, time.Hour)
 	return
+}
+
+type Price struct {
+	BetslipId string
+	BetType   string
+	Bookie    string
+	EventId   string
+	Sport     string
+	Status    string
+	Username  string
+	Num       int
+	Price     float64
+	Min       float64
+	Max       float64
+}
+
+func (s *Store) SavePrice(price Price) {
+	//s.db.Exec()
 }

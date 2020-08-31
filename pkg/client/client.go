@@ -32,13 +32,13 @@ func New(cfg *config.Config, log *zap.SugaredLogger) *Client {
 	a := &Client{cfg: cfg, log: log, jar: jar, APIClient: client, apiConfig: clientConfig, tr: tr}
 	return a
 }
-func (c *Client) BetSlip(ctx context.Context, sport string, eventId string, betType string) (api.BetSlipResponse, error) {
+func (c *Client) BetSlip(ctx context.Context, sport string, eventId string, betType string, multipleAccounts bool) (api.BetSlipResponse, error) {
 	resp, _, err := c.BetApi.BetSlip(ctx).BetSlipRequest(api.BetSlipRequest{
 		Sport:            sport,
 		EventId:          eventId,
 		BetType:          betType,
 		EquivalentBets:   true,
-		MultipleAccounts: true,
+		MultipleAccounts: multipleAccounts,
 	}).Execute()
 	return resp, err
 }
