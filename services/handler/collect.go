@@ -41,6 +41,8 @@ var sportMap = map[string]int64{
 	"American Football": 12,
 }
 
+const minPercent = 1.2
+
 func (h *Handler) processEvent(m []interface{}) {
 	sportList := m[1].([]interface{})
 	sportCode := sportList[0].(string)
@@ -171,7 +173,7 @@ func (h *Handler) ahou(eventPeriodId int64, value interface{}) {
 		}
 		margin := util.TruncateFloat(1/(1/over+1/under)*100-100, 3)
 		h.store.SaveTotal(eventPeriodId, handicap, over, under, margin, true)
-		if margin > 0 {
+		if margin > minPercent {
 			h.log.Infow("ahou", "id", eventPeriodId, "handicap", handicap, "over", over, "under", under, "margin", margin)
 		}
 	}
@@ -187,17 +189,19 @@ func (h *Handler) ah(eventPeriodId int64, value interface{}) {
 			h.store.DeactivateHandicap(eventPeriodId, handicap)
 			continue
 		}
+		var home float64 = 1
 		away := sideList[0].([]interface{})[1].(float64)
 		if away == 0 {
 			away = 1
 		}
-		home := sideList[1].([]interface{})[1].(float64)
-		if home == 0 {
-			home = 1
+		if len(sideList) > 1 {
+			home = sideList[1].([]interface{})[1].(float64)
+
 		}
+
 		margin := util.TruncateFloat(1/(1/away+1/home)*100-100, 3)
 		h.store.SaveHandicap(eventPeriodId, handicap, away, home, margin, true)
-		if margin > 0 {
+		if margin > minPercent {
 			h.log.Infow("ah", "id", eventPeriodId, "handicap", handicap, "away", away, "home", home, "margin", margin)
 		}
 	}
@@ -227,7 +231,7 @@ func (h *Handler) dc(eventPeriodId int64, value interface{}) {
 	}
 	margin := util.TruncateFloat(1/(1/awayDraw+1/homeAway+1/homeDraw)*100-100, 3)
 	h.store.SaveDoubleChance(eventPeriodId, awayDraw, homeAway, homeDraw, margin, true)
-	if margin > 0 {
+	if margin > minPercent {
 		h.log.Infow("dc",  "ad", awayDraw, "hd", homeDraw, "ha", homeAway, "m", margin)
 	}
 }
@@ -241,21 +245,21 @@ func (h *Handler) wdw(eventPeriodId int64, value interface{}) {
 		h.store.DeactivateWinDrawWin(eventPeriodId)
 		return
 	}
+	var draw float64 = 1
+	var home float64 = 1
 	away := sideList[0].([]interface{})[1].(float64)
 	if away == 0 {
 		away = 1
 	}
-	draw := sideList[1].([]interface{})[1].(float64)
-	if draw == 0 {
-		draw = 1
+	if len(sideList) > 1 {
+		draw = sideList[1].([]interface{})[1].(float64)
 	}
-	home := sideList[2].([]interface{})[1].(float64)
-	if home == 0 {
-		home = 1
+	if len(sideList) > 2 {
+		home = sideList[2].([]interface{})[1].(float64)
 	}
 	margin := util.TruncateFloat(1/(1/away+1/draw+1/home)*100-100, 3)
 	h.store.SaveWinDrawWin(eventPeriodId, away, home, draw, margin, true)
-	if margin > 0 {
-		h.log.Infow("wdw",  "a", away, "h", home, "d", draw, "m", margin)
+	if margin > minPercent {
+		h.log.Infow("wdw", "id", eventPeriodId, "a", away, "h", home, "d", draw, "m", margin)
 	}
 }

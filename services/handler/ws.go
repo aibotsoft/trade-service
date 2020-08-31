@@ -66,6 +66,9 @@ func (h *Handler) Read() {
 					h.processOffersEvent(m)
 				} else if m[0] == "offers_hcap" {
 					h.log.Infow("offers_hcap", "msg", m)
+				} else if m[0] == "api" {
+					h.processApi(m)
+
 				}
 			}
 		}

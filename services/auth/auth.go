@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	api "github.com/aibotsoft/gen/blackapi"
 	"github.com/aibotsoft/micro/config"
 	"github.com/aibotsoft/trade/pkg/client"
 	"github.com/aibotsoft/trade/pkg/store"
@@ -114,7 +115,10 @@ func (a *Auth) CheckLogin(ctx context.Context) (err error) {
 	a.log.Infow("check_login_ok", "resp", resp)
 	return
 }
-
+func (a *Auth) Auth(ctx context.Context) (context.Context, error) {
+	auth := context.WithValue(ctx, api.ContextAPIKeys, map[string]api.APIKey{"session": {Key: a.GetSession()}})
+	return auth, nil
+}
 //user := os.Getenv("user")
 //pass := os.Getenv("pass")
 //testSession := os.Getenv("test_session")

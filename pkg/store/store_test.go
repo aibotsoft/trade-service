@@ -26,3 +26,10 @@ func TestStore_GetLiveEvent(t *testing.T) {
 		t.Log(events)
 	}
 }
+
+func TestStore_GetDemoSurebet(t *testing.T) {
+	got, err := s.GetDemoSurebet()
+	if assert.NoError(t, err) {
+		t.Log(got)
+	}
+}

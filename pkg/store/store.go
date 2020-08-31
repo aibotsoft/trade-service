@@ -138,23 +138,23 @@ func (s *Store) SaveEventPeriod(eventId string, periodCode string, isActive bool
 	}
 }
 
-const getEventQ = `
-select e.Id,
-       e.LeagueId,
-       PeriodCode
-from dbo.Event e
-         join dbo.League l on e.LeagueId = l.Id
-         join dbo.EventPeriod ep on ep.EventId = e.Id
-where l.SportId = 1 
-  and ep.IsActive = 1
-  and e.Starts < sysdatetimeoffset()
-`
-
 type Event struct {
 	Id         string
 	LeagueId   int64
 	PeriodCode string
 }
+
+const getEventQ = `
+select top 200 e.Id,
+               e.LeagueId,
+               PeriodCode
+from dbo.Event e
+         join dbo.League l on e.LeagueId = l.Id
+         join dbo.EventPeriod ep on ep.EventId = e.Id
+where l.SportId = 1
+  and ep.IsActive = 1
+order by e.Starts
+`
 
 func (s *Store) GetLiveEvents() (events []Event, err error) {
 	err = s.db.Select(&events, getEventQ)
@@ -228,8 +228,38 @@ func (s *Store) DeactivateDoubleChance(eventPeriodId int64) {
 	_, _ = s.db.Exec("update dbo.DoubleChance set IsActive = 0 where EventPeriodId = @p1", eventPeriodId)
 }
 
-func (s *Store) GetEventPeriodId(eventId string, code string) (eventPeriodId int64, err error){
-	got, b := s.Cache.Get(eventId+code)
+const GetDemoSurebetQ = `
+select top 1 EventPeriodId,
+               HandicapCode,
+               Away,
+               Home,
+               Margin,
+               EventId,
+               PeriodCode
+from Handicap h
+         join EventPeriod ep on ep.Id = h.EventPeriodId
+where h.IsActive = 1
+  and ep.IsActive = 1
+order by Margin desc
+`
+
+type Surebet struct {
+	EventId         string
+	//LeagueId   int64
+	EventPeriodId   int64
+	HandicapCode int64
+	Away float64
+	Home float64
+	Margin float64
+	PeriodCode string
+}
+func (s *Store) GetDemoSurebet() (surebet Surebet, err error) {
+	err = s.db.Get(&surebet, GetDemoSurebetQ)
+	return
+}
+
+func (s *Store) GetEventPeriodId(eventId string, code string) (eventPeriodId int64, err error) {
+	got, b := s.Cache.Get(eventId + code)
 	if b {
 		return got.(int64), nil
 	}
