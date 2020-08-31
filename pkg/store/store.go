@@ -239,7 +239,8 @@ select top 1 EventPeriodId,
 from Handicap h
          join EventPeriod ep on ep.Id = h.EventPeriodId
 where h.IsActive = 1
-  and ep.IsActive = 1
+  and ep.IsActive = 1 
+and Margin > @p1
 order by Margin desc
 `
 
@@ -254,8 +255,8 @@ type Surebet struct {
 	PeriodCode    string
 }
 
-func (s *Store) GetDemoSurebet() (surebet Surebet, err error) {
-	err = s.db.Get(&surebet, GetDemoSurebetQ)
+func (s *Store) GetDemoSurebet(minMargin float64) (surebet Surebet, err error) {
+	err = s.db.Get(&surebet, GetDemoSurebetQ, minMargin)
 	return
 }
 
@@ -302,4 +303,12 @@ func (s *Store) SavePrice(price Price) {
 		s.log.Error(err)
 	}
 
+}
+
+func (s *Store) DeactivatePrice(price Price) {
+	_, err := s.db.Exec("update dbo.Price set IsActive = 0 where BetslipId = @p1 and Bookie = @p2 and BetType = @p3",
+		price.BetslipId, price.Bookie, price.BetType)
+	if err != nil {
+		s.log.Error(err)
+	}
 }

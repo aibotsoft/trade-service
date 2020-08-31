@@ -20,9 +20,13 @@ func (h *Handler) processApi(m []interface{}) {
 		d := data[i].([]interface{})
 		if d[0] == "pmm" {
 			prices := h.processPmm(d)
-			h.log.Infow("", "prices", prices)
+			//h.log.Infow("", "prices", prices)
 			for i := range prices {
-				h.store.SavePrice(prices[i])
+				if prices[i].Price > 0 {
+					h.store.SavePrice(prices[i])
+				} else {
+					h.store.DeactivatePrice(prices[i])
+				}
 			}
 		}
 	}
