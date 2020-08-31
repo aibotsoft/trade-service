@@ -4,8 +4,8 @@ alter proc dbo.uspSavePrice @BetslipId varchar(32),
                             @BetType varchar(32),
                             @Num tinyint,
                             @Price decimal(9, 5),
-                            @Min decimal(9, 5),
-                            @Max decimal(9, 5),
+                            @Min decimal(9, 4),
+                            @Max decimal(9, 4),
                             @Status varchar(32),
                             @IsActive bit
 as

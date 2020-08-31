@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	api "github.com/aibotsoft/gen/blackapi"
 	"github.com/aibotsoft/micro/cache"
 	"github.com/aibotsoft/micro/config"
 	"github.com/dgraph-io/ristretto"
@@ -235,7 +236,9 @@ select top 1 EventPeriodId,
                Home,
                Margin,
                EventId,
-               PeriodCode
+               PeriodCode,
+               concat('for,', 'ah,', 'h,', HandicapCode) HomeBetType,
+               concat('for,', 'ah,', 'a,', HandicapCode) AwayBetType
 from Handicap h
          join EventPeriod ep on ep.Id = h.EventPeriodId
 where h.IsActive = 1
@@ -246,13 +249,14 @@ order by Margin desc
 
 type Surebet struct {
 	EventId string
-	//LeagueId   int64
 	EventPeriodId int64
 	HandicapCode  int64
 	Away          float64
 	Home          float64
 	Margin        float64
 	PeriodCode    string
+	HomeBetType   string
+	AwayBetType   string
 }
 
 func (s *Store) GetDemoSurebet(minMargin float64) (surebet Surebet, err error) {
@@ -301,13 +305,50 @@ func (s *Store) SavePrice(price Price) {
 	)
 	if err != nil {
 		s.log.Error(err)
+		s.log.Infow("price", "", price)
 	}
-
 }
 
 func (s *Store) DeactivatePrice(price Price) {
 	_, err := s.db.Exec("update dbo.Price set IsActive = 0 where BetslipId = @p1 and Bookie = @p2 and BetType = @p3",
 		price.BetslipId, price.Bookie, price.BetType)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
+
+func (s *Store) SaveBetSlip(b api.BetSlipData) {
+	//s.log.Infow("", "slip", b)
+	_, err := s.db.Exec("dbo.uspSaveBetSlip",
+		sql.Named("BetslipId", b.BetslipId),
+		sql.Named("EventId", b.EventId),
+		sql.Named("SportCode", b.Sport),
+		sql.Named("BetType", b.BetType),
+		sql.Named("BetTypeDes", b.BetTypeDescription),
+		sql.Named("BetTypeTemp", b.BetTypeTemplate),
+		sql.Named("EquivalentBets", b.EquivalentBets),
+		sql.Named("MultipleAccounts", b.MultipleAccounts),
+		sql.Named("IsOpen", b.IsOpen),
+		sql.Named("ExpiryTs", b.ExpiryTs),
+	)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
+
+func (s *Store) HasBetSlip(sportCode string, eventId string, betType string) (hasBetSlip bool) {
+	err := s.db.Get(&hasBetSlip, "select 1 from dbo.BetSlip where SportCode = @p1 and EventId = @p2 and BetType = @p3",
+		sportCode, eventId, betType)
+	if err == sql.ErrNoRows {
+		return false
+	} else if err != nil {
+		s.log.Error(err)
+	}
+	return
+}
+
+func (s *Store) DeleteBetSlips() {
+	_, err := s.db.Exec("truncate table dbo.BetSlip")
 	if err != nil {
 		s.log.Error(err)
 	}
