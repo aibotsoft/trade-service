@@ -1,5 +1,5 @@
 create or
-alter proc dbo.uspSaveTrio @EventPeriodId int,
+alter proc dbo.uspSaveDuo @EventPeriodId int,
                            @BetTypeId tinyint,
                            @Code smallint,
                            @APrice decimal(9, 5),
