@@ -40,6 +40,20 @@ var sportMap = map[string]int64{
 	"Rugby League":      11,
 	"American Football": 12,
 }
+var BetTypeMap = map[string]int64{
+	"wdw":          1,
+	//"Basketball":        2,
+	//"eSports":           3,
+	//"Tennis":            4,
+	//"Cricket":           5,
+	//"Baseball":          6,
+	//"Ice Hockey":        7,
+	//"MMA":               8,
+	//"Boxing":            9,
+	//"Rugby Union":       10,
+	//"Rugby League":      11,
+	//"American Football": 12,
+}
 
 const minPercent = 1.2
 
@@ -83,7 +97,7 @@ func (h *Handler) processEvent(m []interface{}) {
 	}
 	away := eventList["away"].(string)
 	if away == "" {
-		h.log.Infow("away_blank", "eventList", eventList)
+		//h.log.Infow("away_blank", "eventList", eventList)
 		return
 	} else if strings.Index(strings.ToLower(away), "test") != -1 {
 		h.log.Infow("away_test", "eventList", eventList)
@@ -110,7 +124,7 @@ func (h *Handler) processEvent(m []interface{}) {
 	country := eventList["country"].(string)
 	starts, ok := eventList["start_ts"].(string)
 	if !ok {
-		h.log.Info("starts_not_ok: ", eventList)
+		//h.log.Info("starts_not_ok: ", eventList)
 		return
 	}
 	h.store.SaveSport(sportId, sportName)
@@ -140,13 +154,13 @@ func (h *Handler) processOffersEvent(m []interface{}) {
 		switch key {
 		case "wdw":
 			h.wdw(eventPeriodId, value)
-		case "ah":
-			h.ah(eventPeriodId, value)
-		case "dc":
-			h.dc(eventPeriodId, value)
-		case "ahou":
-			h.ahou(eventPeriodId, value)
-		default:
+		//case "ah":
+		//	h.ah(eventPeriodId, value)
+		//case "dc":
+		//	h.dc(eventPeriodId, value)
+		//case "ahou":
+		//	h.ahou(eventPeriodId, value)
+		//default:
 			//h.log.Info("key: ", key)
 		}
 	}
@@ -237,29 +251,30 @@ func (h *Handler) dc(eventPeriodId int64, value interface{}) {
 }
 
 func (h *Handler) wdw(eventPeriodId int64, value interface{}) {
-	valueList := value.([]interface{})
-	priceList := valueList[0].([]interface{})
-	sideList, ok := priceList[1].([]interface{})
-	if !ok {
-		//h.log.Infow("wdw_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
-		h.store.DeactivateWinDrawWin(eventPeriodId)
-		return
-	}
-	var draw float64 = 1
-	var home float64 = 1
-	away := sideList[0].([]interface{})[1].(float64)
-	if away == 0 {
-		away = 1
-	}
-	if len(sideList) > 1 {
-		draw = sideList[1].([]interface{})[1].(float64)
-	}
-	if len(sideList) > 2 {
-		home = sideList[2].([]interface{})[1].(float64)
-	}
-	margin := util.TruncateFloat(1/(1/away+1/draw+1/home)*100-100, 3)
-	h.store.SaveWinDrawWin(eventPeriodId, away, home, draw, margin, true)
-	if margin > minPercent {
-		h.log.Infow("wdw", "id", eventPeriodId, "a", away, "h", home, "d", draw, "m", margin)
-	}
+	h.log.Infow("wdw", "id", eventPeriodId, "value", value)
+	//valueList := value.([]interface{})
+	//priceList := valueList[0].([]interface{})
+	//sideList, ok := priceList[1].([]interface{})
+	//if !ok {
+	//	//h.log.Infow("wdw_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
+	//	//h.store.DeactivateWinDrawWin(eventPeriodId)
+	//	return
+	//}
+	//var draw float64 = 1
+	//var home float64 = 1
+	//away := sideList[0].([]interface{})[1].(float64)
+	//if away == 0 {
+	//	away = 1
+	//}
+	//if len(sideList) > 1 {
+	//	draw = sideList[1].([]interface{})[1].(float64)
+	//}
+	//if len(sideList) > 2 {
+	//	home = sideList[2].([]interface{})[1].(float64)
+	//}
+	//margin := util.TruncateFloat(1/(1/away+1/draw+1/home)*100-100, 3)
+	//h.store.SaveWinDrawWin(eventPeriodId, away, home, draw, margin, true)
+	//if margin > minPercent {
+	//	h.log.Infow("wdw", "id", eventPeriodId, "a", away, "h", home, "d", draw, "m", margin)
+	//}
 }

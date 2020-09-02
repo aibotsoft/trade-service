@@ -8,6 +8,9 @@ import (
 
 func (h *Handler) CheckLoop() {
 	h.store.DeleteBetSlips()
+	h.store.DeleteTotals()
+	h.store.DeleteHandicaps()
+	h.store.DeleteWinDrawWins()
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	for  {
@@ -15,7 +18,7 @@ func (h *Handler) CheckLoop() {
 		case <-ticker.C:
 			//h.log.Info(t)
 			surebetId := util.UnixMsNow()
-			sb, err := h.store.GetDemoSurebet(0.2)
+			sb, err := h.store.GetDemoSurebet(0.6)
 			if err != nil {
 				continue
 			}
@@ -35,10 +38,16 @@ func (h *Handler) CheckLoop() {
 					if err != nil {
 						h.log.Error(err)
 					} else {
-						h.log.Infow("price", "", price)
+						//h.log.Infow("price", "", price)
+						price.SurebetId = surebetId
+						if i == 0 {
+							price.Price = sb.Home
+						} else {
+							price.Price = sb.Away
+						}
+						h.store.SaveSurebet(price)
 					}
 				}
-				//h.store.SaveSurebet()
 			}
 		}
 	}

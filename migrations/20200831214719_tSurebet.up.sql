@@ -2,6 +2,8 @@ create table dbo.Surebet
 (
     SurebetId     bigint                                        not null,
     BetslipId     varchar(32)                                   not null,
+    EventId       varchar(100),
+    PeriodCode    varchar(100),
     Price         decimal(9, 5)                                 not null,
 
     BestPrice     decimal(9, 5)                                 not null,

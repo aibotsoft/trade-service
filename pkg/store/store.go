@@ -221,6 +221,28 @@ func (s *Store) SaveWinDrawWin(eventPeriodId int64, away float64, home float64, 
 	}
 }
 
+type Trio struct {
+	EventPeriodId int64
+	BetTypeId int64
+	APrice float64
+	BPrice float64
+	CPrice float64
+	IsActive bool
+}
+func (s *Store) SaveTrio(t Trio) {
+	_, err := s.db.Exec("dbo.uspSaveTrio",
+		sql.Named("EventPeriodId", t.EventPeriodId),
+		sql.Named("BetTypeId", t.BetTypeId),
+		sql.Named("APrice", t.APrice),
+		sql.Named("BPrice", t.BPrice),
+		sql.Named("CPrice", t.CPrice),
+		sql.Named("IsActive", t.IsActive),
+	)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
+
 func (s *Store) DeactivateWinDrawWin(eventPeriodId int64) {
 	_, _ = s.db.Exec("update dbo.WinDrawWin set IsActive = 0 where EventPeriodId = @p1", eventPeriodId)
 }
@@ -230,25 +252,41 @@ func (s *Store) DeactivateDoubleChance(eventPeriodId int64) {
 }
 
 const GetDemoSurebetQ = `
-select top 1 EventPeriodId,
-               HandicapCode,
-               Away,
-               Home,
-               Margin,
-               EventId,
-               PeriodCode,
-               concat('for,', 'ah,', 'h,', HandicapCode) HomeBetType,
-               concat('for,', 'ah,', 'a,', HandicapCode) AwayBetType
-from Handicap h
-         join EventPeriod ep on ep.Id = h.EventPeriodId
-where h.IsActive = 1
-  and ep.IsActive = 1 
-and Margin > @p1
+
+with t as (
+    select EventPeriodId,
+           HandicapCode,
+           Margin,
+           EventId,
+           PeriodCode,
+           concat('for,', 'ah,', 'h,', HandicapCode) HomeBetType,
+           concat('for,', 'ah,', 'a,', HandicapCode) AwayBetType
+    from Handicap h
+             join EventPeriod ep on ep.Id = EventPeriodId
+    where h.IsActive = 1
+      and ep.IsActive = 1
+      and Margin > @p1
+    union all
+    select EventPeriodId,
+           HandicapCode,
+           Margin,
+           EventId,
+           PeriodCode,
+           concat('for,', 'ahover,', HandicapCode)  HomeBetType,
+           concat('for,', 'ahunder,', HandicapCode) AwayBetType
+    from Total t
+             join EventPeriod ep on ep.Id = EventPeriodId
+    where t.IsActive = 1
+      and ep.IsActive = 1
+      and Margin > @p1
+)
+select top 1 EventPeriodId, HandicapCode, Margin, EventId, PeriodCode, HomeBetType, AwayBetType
+from t
 order by Margin desc
 `
 
 type Surebet struct {
-	EventId string
+	EventId       string
 	EventPeriodId int64
 	HandicapCode  int64
 	Away          float64
@@ -354,11 +392,6 @@ func (s *Store) DeleteBetSlips() {
 	}
 }
 
-func (s *Store) SaveSurebet() {
-
-
-}
-
 const getPriceQ = `
 with t as (
     select max(Price)                  Price,
@@ -373,6 +406,8 @@ with t as (
     group by BetslipId
 )
 select top 1 p.BetslipId,
+             bs.EventId,
+             bs.SportCode PeriodCode,
              p.Price BestPrice,
              WeightedPrice,
              Min,
@@ -382,22 +417,53 @@ select top 1 p.BetslipId,
              PriceCount
 from Price p
          join t on p.BetslipId = t.BetslipId and p.Price = t.Price
+join BetSlip bs on bs.BetslipId = p.BetslipId
 order by Max desc
 `
-
 type Side struct {
-	SurebetId int64
-	BetslipId string
-	Price float64
-	BestPrice float64
+	SurebetId     int64
+	BetslipId     string
+	EventId       string
+	PeriodCode    string
+	Price         float64
+	BestPrice     float64
 	WeightedPrice float64
-	Min float64
-	Max float64
-	Volume float64
-	Bookie float64
-	PriceCount float64
+	Min           float64
+	Max           float64
+	Volume        float64
+	Bookie        string
+	PriceCount    int64
 }
-func (s *Store) GetPrice(betSlipId string) (side Side, err error){
+
+func (s *Store) GetPrice(betSlipId string) (side Side, err error) {
 	err = s.db.Get(&side, getPriceQ, betSlipId)
 	return
+}
+
+const saveSurebetQ = `
+insert into dbo.Surebet (SurebetId, BetslipId, EventId, PeriodCode, Price, BestPrice, WeightedPrice, Min, Max, Volume, Bookie, PriceCount)
+VALUES (:SurebetId, :BetslipId, :EventId, :PeriodCode, :Price, :BestPrice, :WeightedPrice, :Min, :Max, :Volume, :Bookie, :PriceCount) 
+`
+
+func (s *Store) SaveSurebet(price Side) (err error) {
+	_, err = s.db.NamedExec(saveSurebetQ, price)
+	return
+}
+func (s *Store) DeleteTotals() {
+	_, err := s.db.Exec(`delete t from Total t join EventPeriod ep on Id = EventPeriodId where ep.IsActive = 0`)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
+func (s *Store) DeleteHandicaps() {
+	_, err := s.db.Exec(`delete h from dbo.Handicap h join EventPeriod ep on Id = EventPeriodId where ep.IsActive = 0`)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
+func (s *Store) DeleteWinDrawWins() {
+	_, err := s.db.Exec(`delete w from dbo.WinDrawWin w join EventPeriod ep on Id = EventPeriodId where ep.IsActive = 0`)
+	if err != nil {
+		s.log.Error(err)
+	}
 }

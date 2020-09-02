@@ -27,9 +27,18 @@ func TestStore_GetLiveEvent(t *testing.T) {
 	}
 }
 
-func TestStore_GetDemoSurebet(t *testing.T) {
-	got, err := s.GetDemoSurebet()
-	if assert.NoError(t, err) {
-		t.Log(got)
-	}
+func TestStore_SaveSurebet(t *testing.T) {
+	err := s.SaveSurebet(Side{
+		SurebetId:     0,
+		BetslipId:     "",
+		Price:         0,
+		BestPrice:     0,
+		WeightedPrice: 0,
+		Min:           0,
+		Max:           0,
+		Volume:        0,
+		Bookie:        "",
+		PriceCount:    0,
+	})
+	assert.NoError(t, err)
 }
