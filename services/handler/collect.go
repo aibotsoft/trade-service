@@ -161,8 +161,8 @@ func (h *Handler) processOffersEvent(m []interface{}) {
 			trio := h.dc(eventPeriodId, valueList)
 			h.store.SaveTrio(trio)
 		case "ah":
-			h.ah(eventPeriodId, value)
-			//h.log.Infow("", "", trio)
+			duo := h.ah(eventPeriodId, valueList)
+			h.log.Infow("", "", duo)
 			//case "ahou":
 			//	h.ahou(eventPeriodId, value)
 			//default:
