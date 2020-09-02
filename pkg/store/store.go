@@ -242,6 +242,27 @@ func (s *Store) SaveTrio(t Trio) {
 		s.log.Error(err)
 	}
 }
+type Duo struct {
+	EventPeriodId int64
+	BetTypeId int64
+	Code int64
+	APrice float64
+	BPrice float64
+	IsActive bool
+}
+func (s *Store) SaveDuo(t Duo) {
+	_, err := s.db.Exec("dbo.uspSaveDuo",
+		sql.Named("EventPeriodId", t.EventPeriodId),
+		sql.Named("BetTypeId", t.BetTypeId),
+		sql.Named("Code", t.Code),
+		sql.Named("APrice", t.APrice),
+		sql.Named("BPrice", t.BPrice),
+		sql.Named("IsActive", t.IsActive),
+	)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
 
 func (s *Store) DeactivateWinDrawWin(eventPeriodId int64) {
 	_, _ = s.db.Exec("update dbo.WinDrawWin set IsActive = 0 where EventPeriodId = @p1", eventPeriodId)

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/aibotsoft/micro/util"
+	"github.com/aibotsoft/trade/pkg/store"
 	"strconv"
 	"strings"
 )
@@ -41,9 +42,9 @@ var sportMap = map[string]int64{
 	"American Football": 12,
 }
 var BetTypeMap = map[string]int64{
-	"wdw":          1,
-	//"Basketball":        2,
-	//"eSports":           3,
+	"wdw": 1,
+	"dc":  2,
+	"ah":  3,
 	//"Tennis":            4,
 	//"Cricket":           5,
 	//"Baseball":          6,
@@ -151,16 +152,20 @@ func (h *Handler) processOffersEvent(m []interface{}) {
 	}
 
 	for key, value := range priceList {
+		valueList := value.([]interface{})
 		switch key {
 		case "wdw":
-			h.wdw(eventPeriodId, value)
-		//case "ah":
-		//	h.ah(eventPeriodId, value)
-		//case "dc":
-		//	h.dc(eventPeriodId, value)
-		//case "ahou":
-		//	h.ahou(eventPeriodId, value)
-		//default:
+			trio := h.wdw(eventPeriodId, valueList)
+			h.store.SaveTrio(trio)
+		case "dc":
+			trio := h.dc(eventPeriodId, valueList)
+			h.store.SaveTrio(trio)
+		case "ah":
+			h.ah(eventPeriodId, value)
+			//h.log.Infow("", "", trio)
+			//case "ahou":
+			//	h.ahou(eventPeriodId, value)
+			//default:
 			//h.log.Info("key: ", key)
 		}
 	}
@@ -192,8 +197,7 @@ func (h *Handler) ahou(eventPeriodId int64, value interface{}) {
 		}
 	}
 }
-func (h *Handler) ah(eventPeriodId int64, value interface{}) {
-	valueList := value.([]interface{})
+func (h *Handler) ah(eventPeriodId int64, valueList []interface{}) (d store.Duo){
 	for i := range valueList {
 		priceList := valueList[i].([]interface{})
 		handicap := int64(priceList[0].(float64))
@@ -203,78 +207,111 @@ func (h *Handler) ah(eventPeriodId int64, value interface{}) {
 			h.store.DeactivateHandicap(eventPeriodId, handicap)
 			continue
 		}
-		var home float64 = 1
-		away := sideList[0].([]interface{})[1].(float64)
-		if away == 0 {
-			away = 1
-		}
-		if len(sideList) > 1 {
-			home = sideList[1].([]interface{})[1].(float64)
-
-		}
-
-		margin := util.TruncateFloat(1/(1/away+1/home)*100-100, 3)
-		h.store.SaveHandicap(eventPeriodId, handicap, away, home, margin, true)
-		if margin > minPercent {
-			h.log.Infow("ah", "id", eventPeriodId, "handicap", handicap, "away", away, "home", home, "margin", margin)
-		}
+		h.log.Infow("", "", sideList)
+		//var home float64 = 1
+		//away := sideList[0].([]interface{})[1].(float64)
+		//if away == 0 {
+		//	away = 1
+		//}
+		//if len(sideList) > 1 {
+		//	home = sideList[1].([]interface{})[1].(float64)
+		//
+		//}
+		//
+		//margin := util.TruncateFloat(1/(1/away+1/home)*100-100, 3)
+		//h.store.SaveHandicap(eventPeriodId, handicap, away, home, margin, true)
+		//if margin > minPercent {
+		//	h.log.Infow("ah", "id", eventPeriodId, "handicap", handicap, "away", away, "home", home, "margin", margin)
+		//}
 	}
+	return
 }
-func (h *Handler) dc(eventPeriodId int64, value interface{}) {
-	valueList := value.([]interface{})
+
+func (h *Handler) wdw(eventPeriodId int64, valueList []interface{}) (t store.Trio) {
+	t.EventPeriodId = eventPeriodId
+	t.BetTypeId = BetTypeMap["wdw"]
 	priceList := valueList[0].([]interface{})
 	sideList, ok := priceList[1].([]interface{})
-	if !ok {
-		//h.log.Infow("dc_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
-		h.store.DeactivateDoubleChance(eventPeriodId)
-		return
+	if ok {
+		t.IsActive = true
+		for i := range sideList {
+			switch sideList[i].([]interface{})[0].(string) {
+			case "h":
+				t.APrice = sideList[i].([]interface{})[1].(float64)
+			case "d":
+				t.BPrice = sideList[i].([]interface{})[1].(float64)
+			case "a":
+				t.CPrice = sideList[i].([]interface{})[1].(float64)
+			}
+		}
 	}
-	var homeAway float64 = 1
-	var homeDraw float64 = 1
-
-	awayDraw := sideList[0].([]interface{})[1].(float64)
-	if awayDraw == 0 {
-		awayDraw = 1
+	return
+}
+func (h *Handler) dc(eventPeriodId int64, valueList []interface{}) (t store.Trio) {
+	t.EventPeriodId = eventPeriodId
+	t.BetTypeId = BetTypeMap["dc"]
+	priceList := valueList[0].([]interface{})
+	sideList, ok := priceList[1].([]interface{})
+	if ok {
+		t.IsActive = true
+		for i := range sideList {
+			//h.log.Infow("",  "v", sideList[i])
+			switch sideList[i].([]interface{})[0].(string) {
+			case "h,d":
+				t.APrice = sideList[i].([]interface{})[1].(float64)
+			case "h,a":
+				t.BPrice = sideList[i].([]interface{})[1].(float64)
+			case "a,d":
+				t.CPrice = sideList[i].([]interface{})[1].(float64)
+			}
+		}
 	}
-	if len(sideList) > 1 {
-		homeAway = sideList[1].([]interface{})[1].(float64)
-	}
-	if len(sideList) > 2 {
-		homeDraw = sideList[2].([]interface{})[1].(float64)
-
-	}
-	margin := util.TruncateFloat(1/(1/awayDraw+1/homeAway+1/homeDraw)*100-100, 3)
-	h.store.SaveDoubleChance(eventPeriodId, awayDraw, homeAway, homeDraw, margin, true)
-	if margin > minPercent {
-		h.log.Infow("dc",  "ad", awayDraw, "hd", homeDraw, "ha", homeAway, "m", margin)
-	}
+	return
 }
 
-func (h *Handler) wdw(eventPeriodId int64, value interface{}) {
-	h.log.Infow("wdw", "id", eventPeriodId, "value", value)
-	//valueList := value.([]interface{})
-	//priceList := valueList[0].([]interface{})
-	//sideList, ok := priceList[1].([]interface{})
-	//if !ok {
-	//	//h.log.Infow("wdw_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
-	//	//h.store.DeactivateWinDrawWin(eventPeriodId)
-	//	return
-	//}
-	//var draw float64 = 1
-	//var home float64 = 1
-	//away := sideList[0].([]interface{})[1].(float64)
-	//if away == 0 {
-	//	away = 1
-	//}
-	//if len(sideList) > 1 {
-	//	draw = sideList[1].([]interface{})[1].(float64)
-	//}
-	//if len(sideList) > 2 {
-	//	home = sideList[2].([]interface{})[1].(float64)
-	//}
-	//margin := util.TruncateFloat(1/(1/away+1/draw+1/home)*100-100, 3)
-	//h.store.SaveWinDrawWin(eventPeriodId, away, home, draw, margin, true)
-	//if margin > minPercent {
-	//	h.log.Infow("wdw", "id", eventPeriodId, "a", away, "h", home, "d", draw, "m", margin)
-	//}
-}
+//func (h *Handler) dc(eventPeriodId int64, value interface{}) {
+//	valueList := value.([]interface{})
+//	priceList := valueList[0].([]interface{})
+//	sideList, ok := priceList[1].([]interface{})
+//	if !ok {
+//		//h.log.Infow("dc_not_ok",  "eventPeriodId", eventPeriodId,"v", value)
+//		h.store.DeactivateDoubleChance(eventPeriodId)
+//		return
+//	}
+//	var homeAway float64 = 1
+//	var homeDraw float64 = 1
+//
+//	awayDraw := sideList[0].([]interface{})[1].(float64)
+//	if awayDraw == 0 {
+//		awayDraw = 1
+//	}
+//	if len(sideList) > 1 {
+//		homeAway = sideList[1].([]interface{})[1].(float64)
+//	}
+//	if len(sideList) > 2 {
+//		homeDraw = sideList[2].([]interface{})[1].(float64)
+//
+//	}
+//	margin := util.TruncateFloat(1/(1/awayDraw+1/homeAway+1/homeDraw)*100-100, 3)
+//	h.store.SaveDoubleChance(eventPeriodId, awayDraw, homeAway, homeDraw, margin, true)
+//	if margin > minPercent {
+//		h.log.Infow("dc",  "ad", awayDraw, "hd", homeDraw, "ha", homeAway, "m", margin)
+//	}
+//}
+//var draw float64 = 1
+//var home float64 = 1
+//away := sideList[0].([]interface{})[1].(float64)
+//if away == 0 {
+//	away = 1
+//}
+//if len(sideList) > 1 {
+//	draw = sideList[1].([]interface{})[1].(float64)
+//}
+//if len(sideList) > 2 {
+//	home = sideList[2].([]interface{})[1].(float64)
+//}
+//margin := util.TruncateFloat(1/(1/away+1/draw+1/home)*100-100, 3)
+//h.store.SaveWinDrawWin(eventPeriodId, away, home, draw, margin, true)
+//if margin > minPercent {
+//	h.log.Infow("wdw", "id", eventPeriodId, "a", away, "h", home, "d", draw, "m", margin)
+//}
