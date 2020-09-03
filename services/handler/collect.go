@@ -160,7 +160,7 @@ func (h *Handler) processEvent(m []interface{}) {
 			sf.PeriodMin = util.PtrFloat64(timeList[1].(float64))
 		}
 		h.log.Infow("", "id", eventId, "s", sportCode, "status", irStatus, "rc", rc, "sf", sf)
-		//h.store.SaveScoreFootball(eventPeriodId, redHome, redAway, scoreHome, scoreAway)
+		h.store.SaveScoreFootball(sf)
 	}
 
 }
