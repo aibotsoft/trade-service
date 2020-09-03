@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"github.com/aibotsoft/micro/util"
 	"github.com/aibotsoft/trade/pkg/store"
 	"strconv"
 	"strings"
@@ -42,18 +41,18 @@ var sportMap = map[string]int64{
 	"American Football": 12,
 }
 var BetTypeMap = map[string]int64{
-	"wdw": 1,
-	"dc":  2,
-	"ah":  3,
-	//"Tennis":            4,
-	//"Cricket":           5,
-	//"Baseball":          6,
-	//"Ice Hockey":        7,
-	//"MMA":               8,
-	//"Boxing":            9,
-	//"Rugby Union":       10,
-	//"Rugby League":      11,
-	//"American Football": 12,
+	"wdw":          1,
+	"dc":           2,
+	"ah":           3,
+	"ahou":         4,
+	"tahou,h":      5,
+	"tahou,a":      6,
+	"score,both":   7,
+	"oe":           8,
+	"clean,h":      9,
+	"clean,a":      10,
+	"win_to_nil,h": 11,
+	"win_to_nil,a": 12,
 }
 
 const minPercent = 1.2
@@ -106,22 +105,21 @@ func (h *Handler) processEvent(m []interface{}) {
 	}
 
 	leagueId := int64(eventList["competition_id"].(float64))
-	//irStatus, ok := eventList["ir_status"].(map[string]interface{})
-	if ok {
-		//h.log.Infow("",
-		//	"s", sportCode,
-		//	"eventId", eventId,
-		//	"home", home,
-		//	"away", away,
-		//	//"competitionId", leagueId,
-		//	//"leagueName", leagueName,
-		//	//"country", country,
-		//	//"starts", starts,
-		//	//"eventList", eventList,
-		//	"ir_status", irStatus,
-		//)
-	}
 
+	//if ok {
+	//	h.log.Infow("",
+	//		"s", sportCode,
+	//		"eventId", eventId,
+	//		"home", home,
+	//		"away", away,
+	//		//"competitionId", leagueId,
+	//		//"leagueName", leagueName,
+	//		//"country", country,
+	//		//"starts", starts,
+	//		//"eventList", eventList,
+	//		"ir_status", irStatus,
+	//	)
+	//}
 	country := eventList["country"].(string)
 	starts, ok := eventList["start_ts"].(string)
 	if !ok {
@@ -134,6 +132,30 @@ func (h *Handler) processEvent(m []interface{}) {
 	h.store.SaveLeague(leagueId, leagueName, country, sportId)
 	h.store.SaveEvent(eventId, homeId, awayId, leagueId, starts)
 	h.store.SaveEventPeriod(eventId, sportCode, true)
+
+	irStatus, ok := eventList["ir_status"].(map[string]interface{})
+	if sportName == "Football" && len(irStatus) > 0 {
+		var sf store.ScoreFootball
+		rc, ok := irStatus["rc"].([]interface{})
+		if ok {
+			sf.RedHome = rc[0].(*int64)
+			sf.RedAway = rc[1].(*int64)
+		}
+
+		//score, _ := irStatus["score"].([]interface{})
+		//scoreHome := score[0].(int64)
+		//scoreAway := score[1].(int64)
+		//time, _ := irStatus["time"].([]interface{})
+		//scoreAway := rc[1].(int64)
+		h.log.Infow("", "id", eventId, "s", sportCode, "status", irStatus, "rc", rc)
+		//eventPeriodId, err := h.store.GetEventPeriodId(eventId, sportCode)
+		//if err != nil {
+		//	h.log.Error(err)
+		//	return
+		//}
+		//h.store.SaveScoreFootball(eventPeriodId, redHome, redAway, scoreHome, scoreAway)
+	}
+
 }
 func (h *Handler) processOffersEvent(m []interface{}) {
 	//h.log.Infow("offers_event", "msg", m)
@@ -149,71 +171,97 @@ func (h *Handler) processOffersEvent(m []interface{}) {
 	eventPeriodId, err := h.store.GetEventPeriodId(eventId, sportCode)
 	if err != nil {
 		h.log.Error(err)
+		return
 	}
-
+	var trios []store.Trio
+	var duos []store.Duo
 	for key, value := range priceList {
 		valueList := value.([]interface{})
 		switch key {
 		case "wdw":
-			trio := h.wdw(eventPeriodId, valueList)
-			h.store.SaveTrio(trio)
+			trio := h.trio(eventPeriodId, BetTypeMap["wdw"], valueList)
+			trios = append(trios, trio)
 		case "dc":
-			trio := h.dc(eventPeriodId, valueList)
-			h.store.SaveTrio(trio)
+			trio := h.trio(eventPeriodId, BetTypeMap["dc"], valueList)
+			trios = append(trios, trio)
 		case "ah":
-			duos := h.ah(eventPeriodId, valueList)
-			h.log.Infow("", "", duos)
-			//case "ahou":
-			//	h.ahou(eventPeriodId, value)
-			//default:
-			//h.log.Info("key: ", key)
+			d := h.duo(eventPeriodId, BetTypeMap["ah"], valueList)
+			duos = append(duos, d...)
+		case "ahou":
+			d := h.duo(eventPeriodId, BetTypeMap["ahou"], valueList)
+			duos = append(duos, d...)
+		case "tahou,h":
+			d := h.duo(eventPeriodId, BetTypeMap["tahou,h"], valueList)
+			duos = append(duos, d...)
+		case "tahou,a":
+			d := h.duo(eventPeriodId, BetTypeMap["tahou,a"], valueList)
+			duos = append(duos, d...)
+		case "score,both":
+			d := h.duo(eventPeriodId, BetTypeMap["score,both"], valueList)
+			duos = append(duos, d...)
+		case "oe":
+			d := h.duo(eventPeriodId, BetTypeMap["oe"], valueList)
+			duos = append(duos, d...)
+		case "clean,h":
+			d := h.duo(eventPeriodId, BetTypeMap["clean,h"], valueList)
+			duos = append(duos, d...)
+		case "clean,a":
+			d := h.duo(eventPeriodId, BetTypeMap["clean,a"], valueList)
+			duos = append(duos, d...)
+		case "win_to_nil,h":
+			d := h.duo(eventPeriodId, BetTypeMap["win_to_nil,h"], valueList)
+			duos = append(duos, d...)
+		case "win_to_nil,a":
+			d := h.duo(eventPeriodId, BetTypeMap["win_to_nil,a"], valueList)
+			duos = append(duos, d...)
+		case "cs":
+		default:
+			//h.log.Infow("", "key: ", key, "valueList", valueList)
 		}
+	}
+	//h.log.Info(len(trios), " ", len(duos))
+	for i := range duos {
+		//h.log.Infow("", "", duos)
+		h.store.SaveDuo(duos[i])
+	}
+	for i := range trios {
+		//h.log.Infow("", "", trios)
+		h.store.SaveTrio(trios[i])
 	}
 }
-func (h *Handler) ahou(eventPeriodId int64, value interface{}) {
-	//h.log.Infow("ahou", "id", eventPeriodId, "value", value)
-	valueList := value.([]interface{})
+func (h *Handler) duo(eventPeriodId int64, betTypeId int64, valueList []interface{}) (duos []store.Duo) {
+	d := store.Duo{EventPeriodId: eventPeriodId, BetTypeId: betTypeId}
 	for i := range valueList {
 		priceList := valueList[i].([]interface{})
-		handicap := int64(priceList[0].(float64))
-		sideList, ok := priceList[1].([]interface{})
-		if !ok {
-			//h.log.Infow("ahou_not_ok", "id", eventPeriodId, "handicap", handicap)
-			h.store.DeactivateTotal(eventPeriodId, handicap)
-			continue
+		switch v := priceList[0].(type) {
+		case float64:
+			d.Code = int64(v)
+		case nil:
+			d.Code = 0
 		}
-		var under float64 = 1
-		over := sideList[0].([]interface{})[1].(float64)
-		if over == 0 {
-			over = 1
-		}
-		if len(sideList) > 1 {
-			under = sideList[1].([]interface{})[1].(float64)
-		}
-		margin := util.TruncateFloat(1/(1/over+1/under)*100-100, 3)
-		h.store.SaveTotal(eventPeriodId, handicap, over, under, margin, true)
-		if margin > minPercent {
-			h.log.Infow("ahou", "id", eventPeriodId, "handicap", handicap, "over", over, "under", under, "margin", margin)
-		}
-	}
-}
-func (h *Handler) ah(eventPeriodId int64, valueList []interface{}) (duos []store.Duo) {
-	d := store.Duo{
-		EventPeriodId: eventPeriodId,
-		BetTypeId: BetTypeMap["ah"],
-	}
-	for i := range valueList {
-		priceList := valueList[i].([]interface{})
-		d.Code = int64(priceList[0].(float64))
 		sideList, ok := priceList[1].([]interface{})
 		if ok {
 			d.IsActive = true
 			for i := range sideList {
 				switch sideList[i].([]interface{})[0].(string) {
-				case "h":
-					d.APrice = sideList[i].([]interface{})[1].(float64)
 				case "a":
+					d.APrice = sideList[i].([]interface{})[1].(float64)
+				case "h":
 					d.BPrice = sideList[i].([]interface{})[1].(float64)
+				case "over":
+					d.APrice = sideList[i].([]interface{})[1].(float64)
+				case "under":
+					d.BPrice = sideList[i].([]interface{})[1].(float64)
+				case "no":
+					d.APrice = sideList[i].([]interface{})[1].(float64)
+				case "yes":
+					d.BPrice = sideList[i].([]interface{})[1].(float64)
+				case "even":
+					d.APrice = sideList[i].([]interface{})[1].(float64)
+				case "odd":
+					d.BPrice = sideList[i].([]interface{})[1].(float64)
+				default:
+					h.log.Info(sideList[i].([]interface{})[0].(string))
 				}
 			}
 		}
@@ -222,9 +270,9 @@ func (h *Handler) ah(eventPeriodId int64, valueList []interface{}) (duos []store
 	return
 }
 
-func (h *Handler) wdw(eventPeriodId int64, valueList []interface{}) (t store.Trio) {
+func (h *Handler) trio(eventPeriodId int64, betTypeId int64, valueList []interface{}) (t store.Trio) {
 	t.EventPeriodId = eventPeriodId
-	t.BetTypeId = BetTypeMap["wdw"]
+	t.BetTypeId = betTypeId
 	priceList := valueList[0].([]interface{})
 	sideList, ok := priceList[1].([]interface{})
 	if ok {
@@ -237,21 +285,6 @@ func (h *Handler) wdw(eventPeriodId int64, valueList []interface{}) (t store.Tri
 				t.BPrice = sideList[i].([]interface{})[1].(float64)
 			case "a":
 				t.CPrice = sideList[i].([]interface{})[1].(float64)
-			}
-		}
-	}
-	return
-}
-func (h *Handler) dc(eventPeriodId int64, valueList []interface{}) (t store.Trio) {
-	t.EventPeriodId = eventPeriodId
-	t.BetTypeId = BetTypeMap["dc"]
-	priceList := valueList[0].([]interface{})
-	sideList, ok := priceList[1].([]interface{})
-	if ok {
-		t.IsActive = true
-		for i := range sideList {
-			//h.log.Infow("",  "v", sideList[i])
-			switch sideList[i].([]interface{})[0].(string) {
 			case "h,d":
 				t.APrice = sideList[i].([]interface{})[1].(float64)
 			case "h,a":
@@ -263,6 +296,28 @@ func (h *Handler) dc(eventPeriodId int64, valueList []interface{}) (t store.Trio
 	}
 	return
 }
+
+//func (h *Handler) dc(eventPeriodId int64, valueList []interface{}) (t store.Trio) {
+//	t.EventPeriodId = eventPeriodId
+//	t.BetTypeId = BetTypeMap["dc"]
+//	priceList := valueList[0].([]interface{})
+//	sideList, ok := priceList[1].([]interface{})
+//	if ok {
+//		t.IsActive = true
+//		for i := range sideList {
+//			//h.log.Infow("",  "v", sideList[i])
+//			switch sideList[i].([]interface{})[0].(string) {
+//			case "h,d":
+//				t.APrice = sideList[i].([]interface{})[1].(float64)
+//			case "h,a":
+//				t.BPrice = sideList[i].([]interface{})[1].(float64)
+//			case "a,d":
+//				t.CPrice = sideList[i].([]interface{})[1].(float64)
+//			}
+//		}
+//	}
+//	return
+//}
 
 //func (h *Handler) dc(eventPeriodId int64, value interface{}) {
 //	valueList := value.([]interface{})
@@ -309,4 +364,25 @@ func (h *Handler) dc(eventPeriodId int64, valueList []interface{}) (t store.Trio
 //h.store.SaveWinDrawWin(eventPeriodId, away, home, draw, margin, true)
 //if margin > minPercent {
 //	h.log.Infow("wdw", "id", eventPeriodId, "a", away, "h", home, "d", draw, "m", margin)
+//}
+//func (h *Handler) ah(eventPeriodId int64, valueList []interface{}) (duos []store.Duo) {
+//	d := store.Duo{EventPeriodId: eventPeriodId, BetTypeId: BetTypeMap["ah"]}
+//	for i := range valueList {
+//		priceList := valueList[i].([]interface{})
+//		d.Code = int64(priceList[0].(float64))
+//		sideList, ok := priceList[1].([]interface{})
+//		if ok {
+//			d.IsActive = true
+//			for i := range sideList {
+//				switch sideList[i].([]interface{})[0].(string) {
+//				case "h":
+//					d.APrice = sideList[i].([]interface{})[1].(float64)
+//				case "a":
+//					d.BPrice = sideList[i].([]interface{})[1].(float64)
+//				}
+//			}
+//		}
+//		duos = append(duos, d)
+//	}
+//	return
 //}

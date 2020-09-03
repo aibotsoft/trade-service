@@ -264,6 +264,31 @@ func (s *Store) SaveDuo(t Duo) {
 	}
 }
 
+type ScoreFootball struct {
+	EventPeriodId int64
+	RedHome *int64
+	RedAway *int64
+	ScoreHome *int64
+	ScoreAway *int64
+	PeriodCode string
+	PeriodMin *int64
+
+}
+func (s *Store) SaveScoreFootball(score ScoreFootball) {
+	_, err := s.db.Exec("dbo.uspSaveScoreFootball",
+		sql.Named("EventPeriodId", score.EventPeriodId),
+		sql.Named("RedHome", score.RedHome),
+		sql.Named("RedAway", score.RedAway),
+		sql.Named("ScoreHome", score.ScoreHome),
+		sql.Named("ScoreAway", score.ScoreAway),
+		sql.Named("PeriodCode", score.PeriodCode),
+		sql.Named("PeriodMin", score.PeriodMin),
+	)
+	if err != nil {
+		s.log.Error(err)
+	}
+}
+
 func (s *Store) DeactivateWinDrawWin(eventPeriodId int64) {
 	_, _ = s.db.Exec("update dbo.WinDrawWin set IsActive = 0 where EventPeriodId = @p1", eventPeriodId)
 }
