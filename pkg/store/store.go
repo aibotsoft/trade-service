@@ -266,12 +266,12 @@ func (s *Store) SaveDuo(t Duo) {
 
 type ScoreFootball struct {
 	EventPeriodId int64
-	RedHome *int64
-	RedAway *int64
-	ScoreHome *int64
-	ScoreAway *int64
+	RedHome *float64
+	RedAway *float64
+	ScoreHome *float64
+	ScoreAway *float64
 	PeriodCode string
-	PeriodMin *int64
+	PeriodMin *float64
 
 }
 func (s *Store) SaveScoreFootball(score ScoreFootball) {

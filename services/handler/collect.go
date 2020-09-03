@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"github.com/aibotsoft/micro/util"
 	"github.com/aibotsoft/trade/pkg/store"
 	"strconv"
 	"strings"
@@ -135,24 +136,30 @@ func (h *Handler) processEvent(m []interface{}) {
 
 	irStatus, ok := eventList["ir_status"].(map[string]interface{})
 	if sportName == "Football" && len(irStatus) > 0 {
-		var sf store.ScoreFootball
+		eventPeriodId, err := h.store.GetEventPeriodId(eventId, sportCode)
+		if err != nil {
+			h.log.Error(err)
+			return
+		}
+		var sf = store.ScoreFootball{EventPeriodId: eventPeriodId}
 		rc, ok := irStatus["rc"].([]interface{})
 		if ok {
-			sf.RedHome = rc[0].(*int64)
-			sf.RedAway = rc[1].(*int64)
+			sf.RedHome = util.PtrFloat64(rc[0].(float64))
+			sf.RedAway = util.PtrFloat64(rc[1].(float64))
 		}
 
-		//score, _ := irStatus["score"].([]interface{})
-		//scoreHome := score[0].(int64)
-		//scoreAway := score[1].(int64)
-		//time, _ := irStatus["time"].([]interface{})
-		//scoreAway := rc[1].(int64)
-		h.log.Infow("", "id", eventId, "s", sportCode, "status", irStatus, "rc", rc)
-		//eventPeriodId, err := h.store.GetEventPeriodId(eventId, sportCode)
-		//if err != nil {
-		//	h.log.Error(err)
-		//	return
-		//}
+		score, ok := irStatus["score"].([]interface{})
+		if ok {
+			sf.ScoreHome = util.PtrFloat64(score[0].(float64))
+			sf.ScoreAway = util.PtrFloat64(score[1].(float64))
+		}
+
+		timeList, ok := irStatus["time"].([]interface{})
+		if ok {
+			sf.PeriodCode = timeList[0].(string)
+			sf.PeriodMin = util.PtrFloat64(timeList[1].(float64))
+		}
+		h.log.Infow("", "id", eventId, "s", sportCode, "status", irStatus, "rc", rc, "sf", sf)
 		//h.store.SaveScoreFootball(eventPeriodId, redHome, redAway, scoreHome, scoreAway)
 	}
 

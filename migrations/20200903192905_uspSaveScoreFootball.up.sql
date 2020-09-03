@@ -19,9 +19,9 @@ begin
             RedAway    = @RedAway,
             ScoreHome  = @ScoreHome,
             ScoreAway  = @ScoreAway,
-            PeriodCode  = @PeriodCode,
+            PeriodCode = @PeriodCode,
             PeriodMin  = @PeriodMin,
-            UpdatedAt = sysdatetimeoffset()
+            UpdatedAt  = sysdatetimeoffset()
 
     WHEN NOT MATCHED THEN
         INSERT (EventPeriodId, RedHome, RedAway, ScoreHome, ScoreAway, PeriodCode, PeriodMin)
